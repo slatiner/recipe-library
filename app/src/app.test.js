@@ -319,6 +319,27 @@ describe('adding a recipe', () => {
     expect(w.find('.add-recipe textarea.paste').element.value).toBe('buy milk');
   });
 
+  it('closing the sheet by accident keeps the pasted text; saving clears it', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
+    await w.find('.add-recipe textarea.paste').setValue('long recipe');
+    await w.find('.overlay.open').trigger('keydown', { key: 'Escape' });
+    await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
+    await flushPromises();
+    expect(w.find('.add-recipe textarea.paste').element.value).toBe('long recipe');
+    await w.findAll('.add-recipe button').find((b) => b.text() === 'Make the card').trigger('click');
+    await flushPromises();
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    window.location.hash = '#/';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
+    await flushPromises();
+    expect(w.find('.add-recipe textarea.paste').element.value).toBe('');
+  });
+
   it('a paste over 12,000 characters is refused without asking the assistant', async () => {
     groqAnswers({});
     const w = await mountApp();
@@ -474,6 +495,17 @@ describe('a recipe page', () => {
     expect(window.location.hash).toBe('#/');
     expect(state.recipes.value).toEqual([]);
     expect(w.text()).toContain('No recipes yet.');
+  });
+
+  it('a source link is shown only for http(s) addresses', async () => {
+    seed = [sampleRecipe({ sourceUrl: 'javascript:alert(1)', sourceAuthor: 'someone' }), sampleRecipe({ id: 'r2', sourceUrl: 'https://example.com/soup' })];
+    const w = await mountApp();
+    for (const [id, href] of [['r1', undefined], ['r2', 'https://example.com/soup']]) {
+      window.location.hash = `#/recipe/${id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await flushPromises();
+      expect(w.find('.recipe-source a').exists() ? w.find('.recipe-source a').attributes('href') : undefined).toBe(href);
+    }
   });
 
   it('an unknown id says so, with a way back', async () => {

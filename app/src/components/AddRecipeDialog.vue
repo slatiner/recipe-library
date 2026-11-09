@@ -1,7 +1,7 @@
 <script setup>
 // Add a recipe: an optional title and the pasted text go to the assistant,
-// which makes the card; the user edits it and saves. Errors keep what was
-// typed, so nothing has to be pasted twice.
+// which makes the card; the user edits it and saves. Errors, and closing the
+// sheet before saving, keep what was typed, so nothing has to be pasted twice.
 import { ref, watch } from 'vue';
 import { parseRecipe, saveRecipe } from '../state.js';
 import { MAX_PASTE } from '../lib/recipes.js';
@@ -20,9 +20,6 @@ const saveError = ref('');
 
 watch(open, (isOpen) => {
   if (!isOpen) return;
-  title.value = '';
-  text.value = '';
-  card.value = null;
   error.value = '';
   saveError.value = '';
 });
@@ -46,6 +43,9 @@ async function save(recipe) {
   saveError.value = '';
   try {
     const saved = await saveRecipe(recipe);
+    title.value = '';
+    text.value = '';
+    card.value = null;
     open.value = false;
     go(`#/recipe/${saved.id}`);
   } catch (e) { saveError.value = e.message; }

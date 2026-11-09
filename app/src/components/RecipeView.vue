@@ -26,6 +26,9 @@ const times = computed(() => {
   return [r.servings && `Serves ${r.servings}`, r.prepMinutes && `Prep ${r.prepMinutes} min`, r.cookMinutes && `Cook ${r.cookMinutes} min`].filter(Boolean);
 });
 
+// Only web addresses become links; anything else (javascript:...) is shown as text.
+const sourceLink = computed(() => (/^https?:\/\//i.test(recipe.value.sourceUrl || '') ? recipe.value.sourceUrl : null));
+
 const editing = ref(false);
 const saving = ref(false);
 const error = ref('');
@@ -107,8 +110,8 @@ async function remove() {
         <span v-for="t in recipe.tags" :key="t" class="tile-tag">{{ t }}</span>
       </div>
       <p v-if="recipe.sourceAuthor || recipe.sourceUrl" class="recipe-source">
-        From <a v-if="recipe.sourceUrl" :href="recipe.sourceUrl" target="_blank" rel="noopener noreferrer">{{ recipe.sourceAuthor || recipe.sourceUrl }}</a>
-        <span v-else>{{ recipe.sourceAuthor }}</span>
+        From <a v-if="sourceLink" :href="sourceLink" target="_blank" rel="noopener noreferrer">{{ recipe.sourceAuthor || sourceLink }}</a>
+        <span v-else>{{ recipe.sourceAuthor || recipe.sourceUrl }}</span>
       </p>
     </template>
 
