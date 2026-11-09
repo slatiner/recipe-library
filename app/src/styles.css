@@ -374,9 +374,11 @@ header.top .account-menu{align-self:center;}
 .tag-chip{padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:inherit;font-size:12px;color:var(--ink-soft);cursor:pointer;}
 .tag-chip:hover{border-color:var(--ink);}
 .tag-chip.active{background:var(--series);border-color:var(--series);color:#fff;}
-.recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+.recipe-grid{display:flex;gap:16px;align-items:flex-start;}
+.recipe-grid[hidden]{display:none;}
+.recipe-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:16px;}
 .recipe-tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:border-color .12s;}
-.tile-photo{display:block;width:calc(100% + 32px);margin:-14px -16px 4px;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--line);}
+.tile-photo{display:block;width:calc(100% + 32px);margin:-14px -16px 4px;height:auto;max-height:340px;object-fit:cover;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--line);}
 .recipe-tile{overflow:hidden;}
 .recipe-tile:hover,.recipe-tile:focus-visible{border-color:var(--ink);outline:none;}
 .tile-head{display:flex;align-items:flex-start;gap:8px;}
