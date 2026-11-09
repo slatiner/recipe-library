@@ -20,7 +20,7 @@ GitHub repo exists. The design is in
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
 | 2 | Import from links | ✅ Done (Find a photo waiting on an Unsplash key, #16) |
-| 2.5 | Cooked & want to cook | 🚧 Built, awaiting the owner's check (#15) |
+| 2.5 | Cooked & want to cook | ✅ Done |
 | 3 | Share & shopping | 🔲 Not started |
 | 4 | Dish photos | 🔲 Not started |
 | 5 | Video sources (experimental) | 🔲 Not started |
