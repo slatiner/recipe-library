@@ -22,7 +22,7 @@ const tags = computed(() => {
   return f.value.tag ? [f.value.tag, ...list.filter((t) => t !== f.value.tag)] : list;
 });
 
-// The tags fold to one line; More appears only when they don't fit.
+// The tags fold to one line; » appears only when they don't fit.
 const tagList = ref(null);
 const tagsOpen = ref(false);
 const tagsOverflow = ref(false);
@@ -87,7 +87,8 @@ async function star(r) {
           @click="f.tag = f.tag === t ? '' : t">{{ t }}</button>
       </div>
       <button v-if="tagsOverflow || tagsOpen" class="link-btn tag-more" :aria-expanded="String(tagsOpen)"
-        @click="tagsOpen = !tagsOpen; nextTick(measureTags)">{{ tagsOpen ? 'Less' : 'More' }}</button>
+        :aria-label="tagsOpen ? 'Fewer tags' : 'More tags'" :title="tagsOpen ? 'Fewer tags' : 'More tags'"
+        @click="tagsOpen = !tagsOpen; nextTick(measureTags)">{{ tagsOpen ? '«' : '»' }}</button>
     </div>
     <p v-if="error" class="library-error redeem-error">{{ error }}</p>
 

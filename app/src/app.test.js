@@ -818,7 +818,7 @@ describe('the library', () => {
     expect(chips()).toEqual(['quick', 'soup', 'baking']);
   });
 
-  it('More shows every tag when they don\'t fit on one line, and Less folds them again', async () => {
+  it('» shows every tag when they don\'t fit on one line, and « folds them again', async () => {
     // jsdom has no layout: pretend the tags are taller than their one line.
     const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight');
     Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get() { return this.classList.contains('tag-list') ? 60 : 0; } });
@@ -828,7 +828,8 @@ describe('the library', () => {
       await flushPromises();
       await w.find('.tag-row .tag-more').trigger('click');
       expect(w.find('.tag-row').classes()).toContain('open');
-      expect(w.find('.tag-more').text()).toBe('Less');
+      expect(w.find('.tag-more').text()).toBe('«');
+      expect(w.find('.tag-more').attributes('aria-label')).toBe('Fewer tags');
       await w.find('.tag-more').trigger('click');
       expect(w.find('.tag-row').classes()).not.toContain('open');
     } finally {
@@ -837,7 +838,7 @@ describe('the library', () => {
     }
   });
 
-  it('no More when the tags fit', async () => {
+  it('no » when the tags fit', async () => {
     seed = three();
     const w = await mountApp();
     await flushPromises();
