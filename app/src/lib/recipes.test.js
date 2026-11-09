@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, formatAmount, filterRecipes, allTags } from './recipes.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, formatAmount, filterRecipes, allTags, today, formatCookedOn } from './recipes.js';
 
 const ing = (o) => ({ group: null, amount: null, unit: null, item: 'x', note: null, ...o });
 
@@ -67,5 +67,25 @@ describe('emptyRecipe', () => {
     expect(emptyRecipe().id).toBeUndefined();
     expect(UNITS).toEqual(['g', 'kg', 'ml', 'l', 'tsp', 'tbsp', 'pc']);
     expect(MAX_PASTE).toBe(12000);
+  });
+});
+
+describe('dates cooked', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('today is the local date, not UTC', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 9, 23, 30));
+    expect(today()).toBe('2026-11-09');
+    vi.setSystemTime(new Date(2026, 0, 2, 0, 15));
+    expect(today()).toBe('2026-01-02');
+  });
+
+  it('shows the date as a day, month and year', () => {
+    expect(formatCookedOn('2026-11-01')).toBe('Cooked 1 Nov 2026');
+  });
+
+  it('a new recipe is a wish without a date', () => {
+    expect(emptyRecipe()).toMatchObject({ status: 'wishlist', cookedOn: null });
   });
 });

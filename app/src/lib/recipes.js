@@ -11,7 +11,8 @@ export function emptyRecipe() {
   return {
     title: '', summary: null, servings: null, prepMinutes: null, cookMinutes: null,
     ingredients: [], steps: [], stepsOrigin: 'source', tags: [], notes: null,
-    sourceKind: 'text', sourceUrl: null, sourceAuthor: null, sourceText: '', imageUrl: null, imageSource: null, imageCredit: null, imageCreditUrl: null, starred: false,
+    sourceKind: 'text', sourceUrl: null, sourceAuthor: null, sourceText: '', imageUrl: null, imageSource: null, imageCredit: null, imageCreditUrl: null,
+    status: 'wishlist', cookedOn: null, starred: false,
   };
 }
 
@@ -55,4 +56,16 @@ export function filterRecipes(list, { query = '', tag = '', starredOnly = false 
 
 export function allTags(list) {
   return [...new Set(list.flatMap((r) => r.tags.map((t) => t.toLowerCase())))].sort();
+}
+
+// Today as 'YYYY-MM-DD' in the browser's time zone (toISOString would give UTC).
+export function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// "Cooked 1 Nov 2026". The date is read as local, so it doesn't shift a day.
+export function formatCookedOn(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return `Cooked ${new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }

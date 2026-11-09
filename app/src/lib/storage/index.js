@@ -10,7 +10,8 @@
 // A recipe is { id, title, summary, servings, prepMinutes, cookMinutes,
 // ingredients: [{ group, amount, unit, item, note }], steps: [{ text }],
 // stepsOrigin, tags, notes, sourceKind, sourceUrl, sourceAuthor, sourceText,
-// imageUrl, imageSource ('site' | 'stock'), imageCredit, imageCreditUrl, starred, createdAt, updatedAt }; id and the dates are absent on a new one.
+// imageUrl, imageSource ('site' | 'stock'), imageCredit, imageCreditUrl, status ('cooked' | 'wishlist'),
+// cookedOn ('YYYY-MM-DD' or null; only when cooked), starred, createdAt, updatedAt }; id and the dates are absent on a new one.
 //   init()                  restore a previous session; recipes[] or null
 //   connect()               user action to sign in; null (the page leaves)
 //   reconnect()             retry after an error; recipes[] or null

@@ -1,5 +1,5 @@
 // App state shared by the components (Vue's built-in reactivity; no Pinia).
-import { reactive, ref } from 'vue';
+import { reactive, ref, toRaw, watch } from 'vue';
 import { createSupabaseStorage } from './lib/storage/index.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import * as llm from './lib/llm.js';
@@ -68,6 +68,17 @@ export async function suggestMethod(recipe) {
   return llm.suggestMethod(await storage.llmEndpoint(), recipe);
 }
 
+// The list on screen ('cooked' | 'wishlist'), remembered on this device, and
+// each list's own filters, kept while a recipe is open.
+const LIST_KEY = 'recipes.list';
+function savedList() {
+  try { return localStorage.getItem(LIST_KEY) === 'cooked' ? 'cooked' : 'wishlist'; } catch { return 'wishlist'; }
+}
+export const currentList = ref(savedList());
+watch(currentList, (list) => { try { localStorage.setItem(LIST_KEY, list); } catch { /* not stored */ } });
+const noFilters = () => ({ query: '', tag: '', starredOnly: false });
+export const listFilters = reactive({ cooked: noFilters(), wishlist: noFilters() });
+
 // Recipes. Each throws the adapter's message, for the view to show.
 export async function saveRecipe(recipe) {
   const saved = await storage.saveRecipe(recipe);
@@ -79,6 +90,12 @@ export async function saveRecipe(recipe) {
 export async function deleteRecipe(id) {
   await storage.deleteRecipe(id);
   recipes.value = recipes.value.filter((r) => r.id !== id);
+}
+// A wish moves to Cooked in place; cookedOn is 'YYYY-MM-DD' or null. A failed
+// save leaves it a wish.
+export async function markCooked(id, cookedOn) {
+  const r = recipes.value.find((x) => x.id === id);
+  return saveRecipe({ ...structuredClone(toRaw(r)), status: 'cooked', cookedOn: cookedOn || null });
 }
 // The star changes at once and goes back if the save fails.
 export async function toggleStar(id) {

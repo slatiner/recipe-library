@@ -51,14 +51,14 @@ const session = {
 const row = {
   id: 'r1', owner: 'u1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prep_minutes: 10, cook_minutes: 30,
   ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
-  steps_origin: 'source', tags: ['soup'], notes: null, source_kind: 'text', source_url: null, source_author: null, image_url: 'https://example.com/a.jpg', image_source: 'site', image_credit: null, image_credit_url: null,
+  steps_origin: 'source', tags: ['soup'], notes: null, source_kind: 'text', source_url: null, source_author: null, image_url: 'https://example.com/a.jpg', image_source: 'site', image_credit: null, image_credit_url: null, status: 'cooked', cooked_on: '2026-11-01',
   source_text: 'raw', starred: false, share_token: null, created_at: '2026-11-09T10:00:00Z', updated_at: '2026-11-09T11:00:00Z',
 };
 const recipe = {
   id: 'r1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prepMinutes: 10, cookMinutes: 30,
   ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
   stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
-  sourceText: 'raw', imageUrl: 'https://example.com/a.jpg', imageSource: 'site', imageCredit: null, imageCreditUrl: null, starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
+  sourceText: 'raw', imageUrl: 'https://example.com/a.jpg', imageSource: 'site', imageCredit: null, imageCreditUrl: null, status: 'cooked', cookedOn: '2026-11-01', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
 };
 // What toRow sends: everything but id, owner, share_token and the timestamps.
 const { id: _i, owner: _o, share_token: _s, created_at: _c, updated_at: _u, ...toRowFields } = row;

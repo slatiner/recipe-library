@@ -14,7 +14,8 @@ function fromRow(r) {
     tags: r.tags, notes: r.notes,
     sourceKind: r.source_kind, sourceUrl: r.source_url, sourceAuthor: r.source_author, sourceText: r.source_text,
     imageUrl: r.image_url ?? null, imageSource: r.image_source ?? null, imageCredit: r.image_credit ?? null,
-    imageCreditUrl: r.image_credit_url ?? null, starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+    imageCreditUrl: r.image_credit_url ?? null, status: r.status, cookedOn: r.cooked_on ?? null,
+    starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
@@ -26,7 +27,8 @@ function toRow(r) {
     tags: r.tags, notes: r.notes,
     source_kind: r.sourceKind, source_url: r.sourceUrl, source_author: r.sourceAuthor, source_text: r.sourceText,
     image_url: r.imageUrl ?? null, image_source: r.imageSource ?? null, image_credit: r.imageCredit ?? null,
-    image_credit_url: r.imageCreditUrl ?? null, starred: r.starred,
+    image_credit_url: r.imageCreditUrl ?? null, status: r.status, cooked_on: r.cookedOn ?? null,
+    starred: r.starred,
   };
 }
 
