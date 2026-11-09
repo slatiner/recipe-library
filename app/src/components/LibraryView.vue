@@ -3,7 +3,7 @@
 // newest first.
 import { computed, ref } from 'vue';
 import { recipes, toggleStar } from '../state.js';
-import { filterRecipes, allTags } from '../lib/recipes.js';
+import { filterRecipes, allTags, mainIngredients } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 
 const emit = defineEmits(['add']);
@@ -58,7 +58,9 @@ async function star(r) {
           <button class="star-btn" :aria-pressed="String(!!r.starred)" :aria-label="r.starred ? 'Unstar' : 'Star'"
             @click.stop="star(r)" @keydown.enter.stop>{{ r.starred ? '★' : '☆' }}</button>
         </div>
-        <p v-if="r.summary" class="tile-summary">{{ r.summary }}</p>
+        <p v-if="r.summary" class="tile-summary" :class="{ long: !photo(r) }">{{ r.summary }}</p>
+        <!-- Without a photo the card has room for what's in it. -->
+        <p v-if="!photo(r) && mainIngredients(r).length" class="tile-ingredients">{{ mainIngredients(r).join(' · ') }}</p>
         <div class="tile-meta">
           <span v-if="totalTime(r)">{{ totalTime(r) }}</span>
           <span v-for="t in r.tags.slice(0, 3)" :key="t" class="tile-tag">{{ t }}</span>

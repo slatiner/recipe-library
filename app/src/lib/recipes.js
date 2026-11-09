@@ -56,3 +56,21 @@ export function filterRecipes(list, { query = '', tag = '', starredOnly = false 
 export function allTags(list) {
   return [...new Set(list.flatMap((r) => r.tags.map((t) => t.toLowerCase())))].sort();
 }
+
+// Pantry basics left off a card's ingredient line.
+const STAPLE = /^(?:(?:fine |flaky |kosher |sea |table )?salt|(?:freshly )?(?:ground )?(?:black |white )?pepper|salt and pepper|(?:cold |hot |warm )?water|(?:extra[- ]virgin |light )?(?:olive |vegetable |neutral |sunflower |rapeseed )?oil|cooking spray|ice)$/i;
+
+// The ingredients worth naming on a card, in order, without duplicates or staples.
+export function mainIngredients(r, max = 8) {
+  const seen = new Set();
+  const out = [];
+  for (const i of r.ingredients || []) {
+    const name = (i.item || '').trim();
+    const key = name.toLowerCase();
+    if (!name || STAPLE.test(name) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length === max) break;
+  }
+  return out;
+}
