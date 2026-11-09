@@ -420,6 +420,17 @@ header.top .account-menu{align-self:center;}
 .recipe-photo figcaption{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
 .recipe-photo figcaption a{color:inherit;}
 .editor-photo img{max-height:220px;}
+.find-photo{margin:0 0 14px;}
+.photo-picker{margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);}
+.picker-search{display:flex;gap:8px;flex-wrap:wrap;}
+.picker-query{flex:1;min-width:160px;}
+.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px;}
+.picker-photo{padding:0;border:2px solid transparent;border-radius:var(--radius);overflow:hidden;cursor:pointer;background:var(--line);aspect-ratio:4/3;}
+.picker-photo:hover,.picker-photo:focus-visible{border-color:var(--ink);outline:none;}
+.picker-photo img{display:block;width:100%;height:100%;object-fit:cover;}
+.photo-picker .field-hint{margin:8px 0 0;}
+.photo-picker .field-hint a{color:inherit;}
+.photo-credit a{color:inherit;}
 .editor-photo figcaption{display:flex;gap:10px;align-items:center;}
 .notes p{white-space:pre-line;font-size:14px;margin:0;}
 .recipe-source{font-size:12.5px;color:var(--ink-soft);margin-top:18px;}

@@ -55,6 +55,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
     async deleteAccount() { calls.push(['deleteAccount']); state.setConnection('signedOut', 'Your account and its data have been deleted.'); },
     async llmEndpoint() { return endpoint; },
     async importEndpoint() { return endpoint && { url: 'https://fn/import-url', headers: {} }; },
+    async photoEndpoint() { return endpoint && { url: 'https://fn/photo-search', headers: {} }; },
     async saveRecipe(recipe) {
       calls.push(['saveRecipe', recipe.id || null]);
       if (failures.save) throw new Error(failures.save);
@@ -386,12 +387,15 @@ describe('adding a recipe', () => {
 
 // Canned answers by address: the importer's page (or an error), then the
 // assistant's JSON answers in order. Records what each was sent.
-function backend({ page = null, pageError = null, answers = [] } = {}) {
+function backend({ page = null, pageError = null, answers = [], photos = [], photoError = null } = {}) {
   const sent = [];
   const queue = [...answers];
   globalThis.fetch = vi.fn(async (url, init) => {
     const body = JSON.parse(init.body);
     sent.push({ url, body });
+    if (url.endsWith('/photo-search')) {
+      return photoError ? new Response(JSON.stringify({ error: photoError }), { status: 429 }) : new Response(JSON.stringify({ photos }), { status: 200 });
+    }
     if (url.endsWith('/import-url')) {
       return pageError ? new Response(JSON.stringify({ error: pageError }), { status: 422 }) : new Response(JSON.stringify(page), { status: 200 });
     }
@@ -512,6 +516,81 @@ describe('steps missing', () => {
     await w.find('.missing-steps button.suggest').trigger('click');
     await flushPromises();
     expect(w.find('.missing-steps .missing-error').text()).toBe("The assistant couldn't suggest a method. Try again.");
+  });
+});
+
+const pexels = [
+  { thumb: 'https://images.pexels.com/1-m.jpg', url: 'https://images.pexels.com/1-l.jpg', alt: 'Gnocchi', photographer: 'Jane Doe', photographerUrl: 'https://www.pexels.com/@jane' },
+  { thumb: 'https://images.pexels.com/2-m.jpg', url: 'https://images.pexels.com/2-l.jpg', alt: '', photographer: 'Sam', photographerUrl: 'https://www.pexels.com/@sam' },
+];
+
+describe('stock photos', () => {
+  it('the preview of a card without a photo can find one; the pick is saved with its credit', async () => {
+    const sent = backend({ answers: [parsed({ steps: ['Mix.'] })], photos: pexels });
+    const w = await mountApp();
+    await openAdd(w);
+    await w.find('.recipe-editor button.find-photo').trigger('click');
+    await flushPromises();
+    expect(sent.at(-1)).toEqual({ url: 'https://fn/photo-search', body: { query: 'Squash Gnudi' } });
+    expect(w.findAll('.picker-photo img').map((i) => i.attributes('src'))).toEqual(['https://images.pexels.com/1-m.jpg', 'https://images.pexels.com/2-m.jpg']);
+    expect(w.find('.photo-picker').text()).toContain('Photos provided by Pexels');
+    await w.findAll('.picker-photo')[0].trigger('click');
+    expect(w.find('.editor-photo img').attributes('src')).toBe('https://images.pexels.com/1-l.jpg');
+    expect(w.find('.editor-photo .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe on Pexels');
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0]).toMatchObject({ imageUrl: 'https://images.pexels.com/1-l.jpg', imageSource: 'stock', imageCredit: 'Jane Doe', imageCreditUrl: 'https://www.pexels.com/@jane' });
+  });
+
+  it('Remove photo clears the credit too', async () => {
+    backend({ answers: [parsed({ steps: ['Mix.'] })], photos: pexels });
+    const w = await mountApp();
+    await openAdd(w);
+    await w.find('.recipe-editor button.find-photo').trigger('click');
+    await flushPromises();
+    await w.findAll('.picker-photo')[1].trigger('click');
+    await w.find('.recipe-editor button.remove-photo').trigger('click');
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0]).toMatchObject({ imageUrl: null, imageSource: null, imageCredit: null, imageCreditUrl: null });
+  });
+
+  it('on a saved card the pick is saved at once and credited', async () => {
+    seed = [sampleRecipe()];
+    const sent = backend({ photos: pexels });
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    await w.find('.recipe-page button.find-photo').trigger('click');
+    await flushPromises();
+    expect(sent[0].body).toEqual({ query: 'Tomato soup' });
+    await w.find('.picker-query').setValue('tomato soup bowl');
+    await w.find('.picker-search').trigger('submit');
+    await flushPromises();
+    expect(sent[1].body).toEqual({ query: 'tomato soup bowl' });
+    await w.findAll('.picker-photo')[0].trigger('click');
+    await flushPromises();
+    expect(adapter.calls).toContainEqual(['saveRecipe', 'r1']);
+    expect(w.find('.recipe-page .recipe-photo img').attributes('src')).toBe('https://images.pexels.com/1-l.jpg');
+    expect(w.find('.recipe-page .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe on Pexels');
+    expect(w.find('.photo-picker').exists()).toBe(false);
+  });
+
+  it('a failed search shows the reason; no results suggest simpler words', async () => {
+    seed = [sampleRecipe()];
+    backend({ photoError: { code: 'busy', message: 'Too many photo searches this hour. Try again later.' } });
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    await w.find('.recipe-page button.find-photo').trigger('click');
+    await flushPromises();
+    expect(w.find('.picker-error').text()).toBe('Too many photo searches this hour. Try again later.');
+    backend({ photos: [] });
+    await w.find('.picker-search').trigger('submit');
+    await flushPromises();
+    expect(w.find('.photo-picker').text()).toContain('No photos found.');
   });
 });
 

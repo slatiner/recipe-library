@@ -49,7 +49,8 @@ fallback). Instagram posts/reels via the public embed caption, with a
 paste-the-caption fallback. Cards without steps are flagged and offer **Suggest
 a method** (AI, labelled, editable) or **Paste steps / website link**.
 A recipe site's own photo (JSON-LD `image` or `og:image`) is kept on the card
-as a credited link.
+as a credited link. A card without a photo can **Find a photo** on Pexels
+(picked by hand, photographer credited).
 
 ### 2.5. Cooked & want to cook
 Two lists, like Content_Project's wishlist: **Cooked** and **Want to cook**,
@@ -69,8 +70,7 @@ Upload a photo of the dish to a card (camera or library on a phone). Resized
 in the browser to about 1200 px WebP before upload, stored in a private
 Supabase Storage bucket per owner (`image_path` on the recipe), replace and
 remove. The photo shows on the card, the library grid and the public share
-page. If still wanted after using Phase 2's source photos: an opt-in "Pick a
-photo" from Pexels by title, photographer credited.
+page. (The Pexels picker moved to Phase 2 at the owner's request.)
 
 ### 5. Video sources (experimental)
 YouTube: description via the official Data API (free key), then a best-effort
@@ -129,7 +129,12 @@ Options evaluated for showing a photo when a recipe is added:
 - **AI-generated image**: rejected. No free, reliable image model in the
   stack, and a generated picture misrepresents the dish.
 Decided: the source photo in Phase 2 (small: `import-url` already reads the
-page), stock search as an opt-in in Phase 4 if still wanted after using it.
+page). Stock search was brought into Phase 2 the same day: Pexels (free key,
+200 searches/hour, 20,000/month, link to Pexels and credit the photographer),
+an opt-in picker searched by title (never automatic: it shows a similar dish,
+not this one), stored as `image_source = stock` with the credit, and shown on
+public share pages too (the Pexels licence allows it; a site's photo does not
+go there).
 
 ### Phase 2 import choices (2026-11-09)
 - Every import goes through the LLM, JSON-LD included: it converts US units

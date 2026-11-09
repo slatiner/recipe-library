@@ -24,10 +24,12 @@ Instagram's embed page holds the caption only for a plain request. With a browse
 - [x] **2. Migration `image_url`** (http(s) only, ≤ 2,000 characters) with pgTAP checks.
 - [x] **3. App.** `storage.importEndpoint()`; `lib/importer.js` (`linkOnly`, `linksIn`, `importLink` with the paste fallback in every error); `llm.js` `STEPS_TASK`/`parseSteps` and `METHOD_TASK`/`suggestMethod`; `state.parseRecipe` imports a lone link; `importSteps`, `suggestMethod`.
 - [x] **4. UI.** `MissingSteps.vue` in the preview (`RecipeEditor`) and on the recipe page (saves at once). It offers "Get the method from <site>" when the caption has a link, *Suggest a method* and *Paste steps or a link*. The AI badge shows in both places. The source photo on the recipe page has a "Photo: <site>" credit, is loaded with `referrerpolicy="no-referrer"` and is hidden if it fails to load.
-- [x] **5. Privacy page:** link fetching and source photos.
+- [x] **5. Privacy page:** link fetching, source photos and photo search.
+- [x] **5b. Find a photo (Pexels), added at the owner's request.** Migration `image_source` / `image_credit` / `image_credit_url` (existing photos become `site`). `photo-search` edge function (members only, `PEXELS_API_KEY`), `lib/photos.js`, `PhotoPicker.vue` (search by title, editable, 9 results, "Photos provided by Pexels") in the editor and on the recipe page (saved at once), `PhotoCredit.vue` ("Photo: <photographer> on Pexels" or the site).
 - [ ] **6. Deploy and check live (owner):**
   - `supabase db push` (the `image_url` migration)
   - `supabase functions deploy import-url --no-verify-jwt`
+  - Pexels key: `supabase secrets set PEXELS_API_KEY=…`, then `supabase functions deploy photo-search --no-verify-jwt`
   - In Chrome via `npm run dev`: a recipe site with JSON-LD, one without, an Instagram reel, a post whose caption says "recipe on my website", and *Suggest a method*.
 
 ## Not covered by tests

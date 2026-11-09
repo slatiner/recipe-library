@@ -8,7 +8,9 @@ import { go } from '../lib/route.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
 import MissingSteps from './MissingSteps.vue';
-import { hostOf } from '../lib/importer.js';
+import PhotoPicker from './PhotoPicker.vue';
+import PhotoCredit from './PhotoCredit.vue';
+import { stockPhoto } from '../lib/photos.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const recipe = computed(() => recipes.value.find((r) => r.id === props.id) || null);
@@ -34,6 +36,12 @@ const sourceLink = computed(() => (/^https?:\/\//i.test(recipe.value.sourceUrl |
 // The source site's photo, linked rather than copied; hidden if it stops loading.
 const imageLink = computed(() => (/^https?:\/\//i.test(recipe.value.imageUrl || '') ? recipe.value.imageUrl : null));
 const imageFailed = ref(false);
+// A card without a photo can pick a stock one; it's saved straight away.
+const picking = ref(false);
+async function pickPhoto(p) {
+  await save({ ...JSON.parse(JSON.stringify(recipe.value)), ...stockPhoto(p) });
+  if (!error.value) { picking.value = false; imageFailed.value = false; }
+}
 
 const editing = ref(false);
 const saving = ref(false);
@@ -81,8 +89,10 @@ async function remove() {
     <template v-else>
       <figure v-if="imageLink && !imageFailed" class="recipe-photo">
         <img :src="imageLink" :alt="recipe.title" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed = true">
-        <figcaption>Photo: <a v-if="sourceLink" :href="sourceLink" target="_blank" rel="noopener noreferrer">{{ hostOf(sourceLink) }}</a><span v-else>{{ hostOf(imageLink) }}</span></figcaption>
+        <figcaption><PhotoCredit :recipe="recipe" /></figcaption>
       </figure>
+      <PhotoPicker v-else-if="picking" :query="recipe.title" @pick="pickPhoto" @close="picking = false" />
+      <button v-else-if="!imageLink" type="button" class="btn ghost small find-photo" @click="picking = true">Find a photo</button>
       <div class="recipe-head">
         <h2>{{ recipe.title }}</h2>
         <button class="star-btn" :aria-pressed="String(!!recipe.starred)" :aria-label="recipe.starred ? 'Unstar' : 'Star'"

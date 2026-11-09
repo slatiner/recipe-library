@@ -4,6 +4,7 @@ import { createSupabaseStorage } from './lib/storage/index.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import * as llm from './lib/llm.js';
 import { importLink, linkOnly } from './lib/importer.js';
+import * as photos from './lib/photos.js';
 
 export const recipes = ref([]);
 export const connection = reactive({ state: 'checking', text: 'Loading…', account: '', profile: null });
@@ -43,7 +44,8 @@ export async function parseRecipe({ title, text }) {
   const page = await importLink(await storage.importEndpoint(), link);
   const out = await llm.parseRecipe(await storage.llmEndpoint(), { title, text: page.text });
   Object.assign(out.recipe, {
-    sourceKind: page.kind, sourceUrl: page.url, sourceAuthor: page.author || null, imageUrl: page.imageUrl || null,
+    sourceKind: page.kind, sourceUrl: page.url, sourceAuthor: page.author || null,
+    imageUrl: page.imageUrl || null, imageSource: page.imageUrl ? 'site' : null,
   });
   return out;
 }
@@ -54,6 +56,11 @@ export async function importSteps(text) {
   const link = linkOnly(text);
   const source = link ? (await importLink(await storage.importEndpoint(), link)).text : text;
   return llm.parseSteps(await storage.llmEndpoint(), source);
+}
+
+// Pexels photos for a dish: [{ thumb, url, alt, photographer, photographerUrl }].
+export async function searchPhotos(query) {
+  return photos.searchPhotos(await storage.photoEndpoint(), query);
 }
 
 // A suggested method (AI, labelled by the caller): [{ text }].

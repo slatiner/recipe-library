@@ -77,7 +77,9 @@ One table, per user (no shared catalogue).
 | source_kind | text | `text` \| `instagram` \| `web` \| `youtube` |
 | source_url | text null | |
 | source_author | text null | e.g. Instagram handle |
-| image_url | text null | the source site's own photo, hotlinked (Phase 2); never shown on the public page |
+| image_url | text null | the card's photo, as a link (Phase 2) |
+| image_source | text null | `site` (the recipe site's photo; never on the public page) \| `stock` (picked on Pexels; public page too); Phase 4 adds `upload` |
+| image_credit, image_credit_url | text null | the photographer and their Pexels page, for `stock` |
 | source_text | text | the raw pasted/fetched text, kept so a card can be re-parsed |
 | starred | bool default false | |
 | status | text default `cooked` | `cooked` \| `wishlist` (Phase 2.5) |

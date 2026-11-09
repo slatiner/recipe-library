@@ -4,6 +4,9 @@
 import { computed, reactive, ref } from 'vue';
 import { UNITS, normalizeIngredient } from '../lib/recipes.js';
 import MissingSteps from './MissingSteps.vue';
+import PhotoPicker from './PhotoPicker.vue';
+import PhotoCredit from './PhotoCredit.vue';
+import { stockPhoto, noPhoto } from '../lib/photos.js';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -21,6 +24,16 @@ const tagsText = ref(draft.tags.join(', '));
 // The source site's photo (a link), shown so it can be checked before saving.
 const imageLink = computed(() => (/^https?:\/\//i.test(draft.imageUrl || '') ? draft.imageUrl : null));
 const imageFailed = ref(false);
+const picking = ref(false);
+function pickPhoto(p) {
+  Object.assign(draft, stockPhoto(p));
+  imageFailed.value = false;
+  picking.value = false;
+}
+function removePhoto() {
+  Object.assign(draft, noPhoto());
+  imageFailed.value = false;
+}
 const canSave = computed(() => !!draft.title.trim() && !props.saving);
 
 const blankRow = () => ({ group: null, amount: '', unit: null, item: '', note: null });
@@ -64,10 +77,13 @@ function save() {
     <figure v-if="imageLink" class="recipe-photo editor-photo">
       <img v-if="!imageFailed" :src="imageLink" :alt="draft.title" referrerpolicy="no-referrer" @error="imageFailed = true">
       <figcaption>
-        <span v-if="imageFailed">The source's photo didn't load.</span>
-        <button type="button" class="link-btn remove-photo" @click="draft.imageUrl = null">Remove photo</button>
+        <span v-if="imageFailed">The photo didn't load.</span>
+        <PhotoCredit v-else :recipe="draft" />
+        <button type="button" class="link-btn remove-photo" @click="removePhoto">Remove photo</button>
       </figcaption>
     </figure>
+    <PhotoPicker v-else-if="picking" :query="draft.title" @pick="pickPhoto" @close="picking = false" />
+    <button v-else type="button" class="btn ghost small find-photo" @click="picking = true">Find a photo</button>
     <div class="field">
       <label>Title</label>
       <input v-model="draft.title" class="title" maxlength="200">

@@ -13,7 +13,8 @@ function fromRow(r) {
     ingredients: r.ingredients, steps: r.steps, stepsOrigin: r.steps_origin,
     tags: r.tags, notes: r.notes,
     sourceKind: r.source_kind, sourceUrl: r.source_url, sourceAuthor: r.source_author, sourceText: r.source_text,
-    imageUrl: r.image_url ?? null, starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+    imageUrl: r.image_url ?? null, imageSource: r.image_source ?? null, imageCredit: r.image_credit ?? null,
+    imageCreditUrl: r.image_credit_url ?? null, starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
@@ -24,7 +25,8 @@ function toRow(r) {
     ingredients: r.ingredients, steps: r.steps, steps_origin: r.stepsOrigin,
     tags: r.tags, notes: r.notes,
     source_kind: r.sourceKind, source_url: r.sourceUrl, source_author: r.sourceAuthor, source_text: r.sourceText,
-    image_url: r.imageUrl ?? null, starred: r.starred,
+    image_url: r.imageUrl ?? null, image_source: r.imageSource ?? null, image_credit: r.imageCredit ?? null,
+    image_credit_url: r.imageCreditUrl ?? null, starred: r.starred,
   };
 }
 
@@ -206,10 +208,11 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
       setStatus('signedOut', 'Your account and its data have been deleted.');
     },
 
-    // The assistant's Groq proxy (supabase/functions/groq) and the link
-    // importer (supabase/functions/import-url), called with the signed-in
-    // user's token. null when signed out.
+    // The assistant's Groq proxy (supabase/functions/groq), the link importer
+    // (import-url) and the photo search (photo-search), called with the
+    // signed-in user's token. null when signed out.
     llmEndpoint: () => functionEndpoint('groq'),
     importEndpoint: () => functionEndpoint('import-url'),
+    photoEndpoint: () => functionEndpoint('photo-search'),
   };
 }
