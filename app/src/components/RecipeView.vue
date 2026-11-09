@@ -1,6 +1,6 @@
 <script setup>
-// One recipe on its own page (#/recipe/<id>): read it, star it, edit it in
-// place or delete it.
+// One recipe on its own page (#/recipe/<id>), as a card: read it, star it,
+// edit it in place or delete it; the X goes back to the library.
 import { computed, ref } from 'vue';
 import { recipes, saveRecipe, deleteRecipe, toggleStar } from '../state.js';
 import { formatAmount } from '../lib/recipes.js';
@@ -75,7 +75,7 @@ async function remove() {
     Recipe not found. <a href="#/">Back to the library</a>
   </div>
   <article v-else class="recipe-page">
-    <a class="back-link" href="#/">← Library</a>
+    <button v-if="!editing" type="button" class="close-btn" aria-label="Close" @click="go('#/')">×</button>
     <RecipeEditor v-if="editing" :model-value="recipe" :saving="saving" :error="error"
       @save="save" @cancel="editing = false; error = ''" />
     <template v-else>
@@ -90,11 +90,6 @@ async function remove() {
       </div>
       <p v-if="recipe.summary" class="recipe-summary">{{ recipe.summary }}</p>
       <p v-if="times.length" class="recipe-times">{{ times.join(' · ') }}</p>
-      <div class="recipe-actions">
-        <button class="btn ghost small" @click="editing = true">Edit</button>
-        <button class="btn danger small" @click="confirmOpen = true">Delete</button>
-      </div>
-      <p v-if="error" class="redeem-error">{{ error }}</p>
 
       <section v-if="recipe.ingredients.length" class="ingredients">
         <h3>Ingredients</h3>
@@ -129,6 +124,11 @@ async function remove() {
         From <a v-if="sourceLink" :href="sourceLink" target="_blank" rel="noopener noreferrer">{{ recipe.sourceAuthor || sourceLink }}</a>
         <span v-else>{{ recipe.sourceAuthor || recipe.sourceUrl }}</span>
       </p>
+      <p v-if="error" class="redeem-error">{{ error }}</p>
+      <div class="recipe-actions">
+        <button class="btn ghost small" @click="editing = true">Edit</button>
+        <button class="btn danger small" @click="confirmOpen = true">Delete</button>
+      </div>
     </template>
 
     <Modal v-model:open="confirmOpen">

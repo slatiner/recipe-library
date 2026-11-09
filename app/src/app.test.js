@@ -670,6 +670,19 @@ describe('a recipe page', () => {
     expect(w.find('.recipe-page .ai-badge').text()).toBe("AI suggested, may differ from the creator's");
   });
 
+  it('the X closes the card back to the library; Edit and Delete sit at the bottom', async () => {
+    const w = await openRecipe();
+    const page = w.find('.recipe-page');
+    expect(page.find('.back-link').exists()).toBe(false);
+    const order = [...page.element.children].map((el) => el.className);
+    expect(order.indexOf('recipe-actions')).toBeGreaterThan(order.indexOf('method'));
+    await page.find('button.close-btn').trigger('click');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(window.location.hash).toBe('#/');
+    expect(w.find('.recipe-page').exists()).toBe(false);
+  });
+
   it('an unknown id says so, with a way back', async () => {
     const w = await openRecipe('nope');
     expect(w.text()).toContain('Recipe not found.');
