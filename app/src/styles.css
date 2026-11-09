@@ -387,7 +387,7 @@ header.top .account-menu{align-self:center;}
 .star-btn{border:none;background:none;padding:0 2px;font-size:18px;line-height:1;cursor:pointer;color:var(--film);}
 .recipe-page{position:relative;max-width:720px;margin:16px auto 0;padding:24px 28px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);}
 .recipe-missing{max-width:720px;margin:16px auto 0;}
-.close-btn{position:absolute;top:10px;right:10px;z-index:1;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--panel);color:var(--ink-soft);font-size:24px;line-height:34px;cursor:pointer;}
+.close-btn{position:absolute;top:-10px;right:-10px;z-index:1;width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink-soft);font-size:24px;line-height:32px;cursor:pointer;}
 .close-btn:hover,.close-btn:focus-visible{color:var(--ink);background:var(--paper);outline:none;}
 .recipe-head{display:flex;align-items:flex-start;gap:10px;margin-top:0;}
 .recipe-head h2{flex:1;margin:0;font-size:24px;font-weight:600;}
