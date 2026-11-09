@@ -77,7 +77,7 @@ async function star(r) {
               @click.stop="star(r)" @keydown.enter.stop>{{ r.starred ? '★' : '☆' }}</button>
           </div>
           <p v-if="r.summary" class="tile-summary">{{ r.summary }}</p>
-          <div class="tile-meta">
+          <div v-if="totalTime(r) || r.tags.length" class="tile-meta">
             <span v-if="totalTime(r)">{{ totalTime(r) }}</span>
             <span v-for="t in r.tags.slice(0, 3)" :key="t" class="tile-tag">{{ t }}</span>
           </div>
