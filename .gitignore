@@ -1,0 +1,11 @@
+.DS_Store
+
+# Secrets: API keys and tokens. Never commit these.
+secrets.json
+.env
+.env.*
+recipe-library-backup.key
+
+# Node / Vite
+node_modules/
+dist/
