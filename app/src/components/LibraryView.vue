@@ -1,7 +1,7 @@
 <script setup>
 // The library: a Want to cook / Cooked toggle, search, a Starred toggle, tag chips and a mosaic of recipes,
 // newest first along the top row (lib/mosaic.js).
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { recipes, toggleStar, currentList, listFilters } from '../state.js';
 import { filterRecipes, allTags } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
@@ -14,12 +14,22 @@ const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label:
 // The current list's own filters (state.js keeps them while a recipe is open).
 const f = computed(() => listFilters[currentList.value]);
 const inList = computed(() => recipes.value.filter((r) => r.status === currentList.value));
-// A picked tag stays a chip even when no card has it any more (its last one
-// moved or was deleted), so the filter can still be seen and cleared.
+// Most used first. A picked tag goes to the front, so it's never folded away
+// behind More, and stays a chip even when no card has it any more (its last
+// one moved or was deleted), so the filter can still be seen and cleared.
 const tags = computed(() => {
   const list = allTags(inList.value);
-  return f.value.tag && !list.includes(f.value.tag) ? [...list, f.value.tag].sort() : list;
+  return f.value.tag ? [f.value.tag, ...list.filter((t) => t !== f.value.tag)] : list;
 });
+
+// The tags fold to one line; More appears only when they don't fit.
+const tagList = ref(null);
+const tagsOpen = ref(false);
+const tagsOverflow = ref(false);
+function measureTags() {
+  if (tagList.value && !tagsOpen.value) tagsOverflow.value = tagList.value.scrollHeight > tagList.value.clientHeight + 1;
+}
+watch(tags, () => nextTick(measureTags));
 const shown = computed(() => filterRecipes(inList.value, f.value));
 
 // Columns follow the library's width.
@@ -27,7 +37,10 @@ const grid = ref(null);
 const columns = ref(1);
 const dealt = computed(() => dealColumns(shown.value, columns.value));
 let observer = null;
-function measure() { if (grid.value) columns.value = columnCount(grid.value.clientWidth); }
+function measure() {
+  if (grid.value) columns.value = columnCount(grid.value.clientWidth);
+  measureTags();
+}
 onMounted(() => {
   measure();
   if (typeof ResizeObserver !== 'undefined') {
@@ -68,9 +81,13 @@ async function star(r) {
           :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
       </div>
     </div>
-    <div v-if="tags.length" class="tag-row">
-      <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tag === t }" :aria-pressed="f.tag === t"
-        @click="f.tag = f.tag === t ? '' : t">{{ t }}</button>
+    <div v-if="tags.length" class="tag-row" :class="{ open: tagsOpen }">
+      <div ref="tagList" class="tag-list">
+        <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tag === t }" :aria-pressed="f.tag === t"
+          @click="f.tag = f.tag === t ? '' : t">{{ t }}</button>
+      </div>
+      <button v-if="tagsOverflow || tagsOpen" class="link-btn tag-more" :aria-expanded="String(tagsOpen)"
+        @click="tagsOpen = !tagsOpen; nextTick(measureTags)">{{ tagsOpen ? 'Less' : 'More' }}</button>
     </div>
     <p v-if="error" class="library-error redeem-error">{{ error }}</p>
 

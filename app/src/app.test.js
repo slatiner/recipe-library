@@ -809,6 +809,41 @@ describe('the library', () => {
     expect(tiles(w)).toHaveLength(3);
   });
 
+  it('tags are ordered by use, and a picked tag moves to the front', async () => {
+    seed = three();
+    const w = await mountApp();
+    const chips = () => w.findAll('.tag-chip').map((b) => b.text());
+    expect(chips()).toEqual(['soup', 'baking', 'quick']);
+    await w.findAll('.tag-chip').find((b) => b.text() === 'quick').trigger('click');
+    expect(chips()).toEqual(['quick', 'soup', 'baking']);
+  });
+
+  it('More shows every tag when they don\'t fit on one line, and Less folds them again', async () => {
+    // jsdom has no layout: pretend the tags are taller than their one line.
+    const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight');
+    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get() { return this.classList.contains('tag-list') ? 60 : 0; } });
+    try {
+      seed = three();
+      const w = await mountApp();
+      await flushPromises();
+      await w.find('.tag-row .tag-more').trigger('click');
+      expect(w.find('.tag-row').classes()).toContain('open');
+      expect(w.find('.tag-more').text()).toBe('Less');
+      await w.find('.tag-more').trigger('click');
+      expect(w.find('.tag-row').classes()).not.toContain('open');
+    } finally {
+      if (height) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', height);
+      else delete HTMLElement.prototype.scrollHeight;
+    }
+  });
+
+  it('no More when the tags fit', async () => {
+    seed = three();
+    const w = await mountApp();
+    await flushPromises();
+    expect(w.find('.tag-more').exists()).toBe(false);
+  });
+
   it('Starred shows only starred recipes', async () => {
     seed = three();
     const w = await mountApp();

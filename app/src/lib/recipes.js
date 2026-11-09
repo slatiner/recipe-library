@@ -54,8 +54,11 @@ export function filterRecipes(list, { query = '', tag = '', starredOnly = false 
   });
 }
 
+// Every tag once, in lower case: the most used first, then alphabetical.
 export function allTags(list) {
-  return [...new Set(list.flatMap((r) => r.tags.map((t) => t.toLowerCase())))].sort();
+  const uses = new Map();
+  for (const r of list) for (const t of new Set(r.tags.map((x) => x.toLowerCase()))) uses.set(t, (uses.get(t) || 0) + 1);
+  return [...uses.keys()].sort((a, b) => uses.get(b) - uses.get(a) || a.localeCompare(b));
 }
 
 // Today as 'YYYY-MM-DD' in the browser's time zone (toISOString would give UTC).

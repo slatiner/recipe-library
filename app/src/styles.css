@@ -377,8 +377,12 @@ header.top .account-menu{align-self:center;}
 .cooked-btn{border:0;background:none;font-size:16px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:2px 4px;}
 .cooked-btn:hover{color:var(--ink);}
 .cooked-on{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}
-.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;}
-.tag-chip{padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:inherit;font-size:12px;color:var(--ink-soft);cursor:pointer;}
+.tag-row{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;}
+/* One line of chips (26px) until More opens the rest. */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;max-height:26px;overflow:hidden;}
+.tag-row.open .tag-list{max-height:none;}
+.tag-more{flex:none;line-height:26px;font-size:12px;white-space:nowrap;}
+.tag-chip{line-height:16px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:inherit;font-size:12px;color:var(--ink-soft);cursor:pointer;}
 .tag-chip:hover{border-color:var(--ink);}
 .tag-chip.active{background:var(--series);border-color:var(--series);color:#fff;}
 .recipe-grid{display:flex;gap:16px;align-items:flex-start;}

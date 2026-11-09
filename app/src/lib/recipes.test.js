@@ -57,7 +57,8 @@ describe('filterRecipes and allTags', () => {
     expect(ids(filterRecipes(list, {}))).toEqual(['1', '2']);
   });
   it('lists tags sorted and unique', () => {
-    expect(allTags([...list, { ...list[1], id: '3', tags: ['Soup'] }])).toEqual(['dessert', 'french', 'soup']);
+    // Most used first, then alphabetical.
+    expect(allTags([...list, { ...list[1], id: '3', tags: ['Soup'] }])).toEqual(['soup', 'dessert', 'french']);
   });
 });
 
