@@ -17,7 +17,8 @@ const error = ref('');
 const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label: 'Cooked' }];
 // The current list's own filters (state.js keeps them while a recipe is open).
 const f = computed(() => listFilters[currentList.value]);
-const inList = computed(() => recipes.value.filter((r) => r.status === currentList.value));
+// Starred shows the starred recipes from both lists.
+const inList = computed(() => (f.value.starredOnly ? recipes.value : recipes.value.filter((r) => r.status === currentList.value)));
 // Picked tags first, in the order picked, so they're never folded away behind
 // More, and stay chips even when no card has them any more (the last one moved
 // or was deleted), so the filter can still be seen and cleared. Then, most used

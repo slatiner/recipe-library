@@ -647,6 +647,15 @@ describe('cooked and want to cook', () => {
     expect(w.find('.tag-chip.active').text()).toBe('baking');
   });
 
+  it('Starred shows starred recipes from both lists', async () => {
+    seed = both().map((r) => ({ ...r, starred: true }));
+    const w = await mountApp();
+    const shownInList = tiles(w).length;
+    await w.find('.starred-toggle').trigger('click');
+    expect(tiles(w).length).toBe(seed.length);
+    expect(shownInList).toBeLessThan(seed.length);
+  });
+
   it('tag chips come from the list on screen', async () => {
     seed = both();
     const w = await mountApp();
