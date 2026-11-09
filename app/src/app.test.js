@@ -707,6 +707,17 @@ describe('cooked and want to cook', () => {
     expect(tiles(w)).toEqual(['Pea soup']);
   });
 
+  it('a tag picked before its last wish moves stays shown, so it can be cleared', async () => {
+    seed = [...both(), sampleRecipe({ id: 'w2', title: 'Toast', tags: ['breakfast'] })];
+    const w = await mountApp();
+    await w.findAll('.tag-chip').find((b) => b.text() === 'soup').trigger('click');
+    await w.find('.recipe-tile .cooked-btn').trigger('click');
+    await moveButton(w).trigger('click');
+    await flushPromises();
+    await w.find('.tag-chip.active').trigger('click');
+    expect(tiles(w)).toEqual(['Toast']);
+  });
+
   it('cooked tiles have no ✓', async () => {
     seed = both();
     const w = await mountApp();

@@ -15,7 +15,12 @@ const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label:
 // The current list's own filters (state.js keeps them while a recipe is open).
 const f = computed(() => listFilters[currentList.value]);
 const inList = computed(() => recipes.value.filter((r) => r.status === currentList.value));
-const tags = computed(() => allTags(inList.value));
+// A picked tag stays a chip even when no card has it any more (its last one
+// moved or was deleted), so the filter can still be seen and cleared.
+const tags = computed(() => {
+  const list = allTags(inList.value);
+  return f.value.tag && !list.includes(f.value.tag) ? [...list, f.value.tag].sort() : list;
+});
 const shown = computed(() => filterRecipes(inList.value, f.value));
 
 // Columns follow the library's width.
