@@ -424,6 +424,18 @@ describe('importing a link', () => {
     expect(saved).toMatchObject({ sourceKind: 'web', sourceUrl: 'https://cook.example/gnudi', sourceAuthor: 'Cook', imageUrl: 'https://cook.example/g.jpg', sourceText: igPage.text });
   });
 
+  it('the preview shows the source photo; Remove photo drops it from the saved card', async () => {
+    backend({ page: { ...igPage, kind: 'web', url: 'https://cook.example/gnudi', imageUrl: 'https://cook.example/g.jpg' }, answers: [parsed({ steps: ['Mix.'] })] });
+    const w = await mountApp();
+    await openAdd(w, { text: 'https://cook.example/gnudi' });
+    expect(w.find('.recipe-editor .editor-photo img').attributes('src')).toBe('https://cook.example/g.jpg');
+    await w.find('.recipe-editor button.remove-photo').trigger('click');
+    expect(w.find('.recipe-editor .editor-photo').exists()).toBe(false);
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0].imageUrl).toBeNull();
+  });
+
   it('text with a link inside is pasted text, not an import', async () => {
     const sent = backend({ answers: [parsed({ steps: ['Mix.'] })] });
     const w = await mountApp();
