@@ -169,3 +169,15 @@ trigger the photo's `download_location` when one is picked, credit "Photo by
 <name> on Unsplash" with `utm_source` links, and store `image_source = stock`
 as now. Fallback if Unsplash says no: Openverse (no key; only reusable
 licences, each credited).
+
+### Phase 3 share and shopping choices (2026-11-09)
+Plan: `docs/superpowers/plans/2026-11-09-phase-3-share.md` (not started).
+- Shopping list: a **Shopping list** pick mode in the library (tap tiles,
+  `N selected · Copy list · Cancel`), from either list. Plain text: the recipe
+  names, then one line per item, alphabetical; same item and unit summed;
+  g and kg not merged in v1. No AI, nothing stored.
+- Public page: title, summary, times, ingredients, method (AI badge kept),
+  notes, tags, source. Not the star, date cooked, list or owner. Only a stock
+  photo (credited); a site's own photo never.
+- The share token is made by the database (`share_recipe` RPC); visitors read
+  through `get_shared_recipe`, which returns only those public fields.
