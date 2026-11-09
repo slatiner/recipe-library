@@ -48,6 +48,9 @@ select throws_ok($$ insert into public.recipes (title) values ('   ') $$, '23514
 select throws_ok($$ insert into public.recipes (title, steps_origin) values ('x', 'x') $$, '23514', null, 'an unknown steps_origin is refused');
 select throws_ok($$ insert into public.recipes (title, ingredients) values ('x', '{}') $$, '23514', null, 'ingredients must be an array');
 select throws_ok($$ insert into public.recipes (title, source_text) values ('x', repeat('x', 20001)) $$, '23514', null, 'source text over 20,000 characters is refused');
+select lives_ok($$ insert into public.recipes (title, image_url) values ('Pic', 'https://example.com/a.jpg') $$, 'an http(s) image link is kept');
+select throws_ok($$ insert into public.recipes (title, image_url) values ('x', 'javascript:alert(1)') $$, '23514', null, 'a non-http image link is refused');
+select throws_ok($$ insert into public.recipes (title, image_url) values ('x', 'https://' || repeat('x', 2000)) $$, '23514', null, 'an image link over 2,000 characters is refused');
 
 -- ---- Member b can't see or touch a's ----
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');

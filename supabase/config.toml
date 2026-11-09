@@ -416,3 +416,6 @@ enabled = true
 
 [functions.groq]
 verify_jwt = false
+
+[functions.import-url]
+verify_jwt = false
