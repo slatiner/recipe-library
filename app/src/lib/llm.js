@@ -49,6 +49,7 @@ function buildRecipePrompt() {
   return `You turn recipe text the user pasted (from a website, a social media post, a message or their own notes) into one recipe card in metric units. Reply with JSON only.
 
 Rules:
+- Always write the card in English, whatever the language of the text: translate the title, summary, ingredients (names, notes and section headings), steps, tags and notes. Keep a dish's own name when English cooks use it too (gnocchi, pad thai, shakshuka). A recipe in another language is still a recipe.
 - isRecipe: false if the text is not a recipe (no dish with ingredients or a method); then fill the other fields with null or empty arrays.
 - title: the dish's name, only if the text clearly names it, with normal capitalization. Otherwise null. If the user gave a title, use it as context only.
 - summary: one or two lines describing the dish, taken from the text. null if there is none.
@@ -75,7 +76,8 @@ const STEPS_SCHEMA = {
   additionalProperties: false,
 };
 
-const STEP_RULES = `- One step per instruction or small group of instructions, in order, without numbering.
+const STEP_RULES = `- Always write the steps in English, translating them if the text is in another language.
+- One step per instruction or small group of instructions, in order, without numbering.
 - Metric only: convert Fahrenheit to Celsius (350°F -> 180°C), inches to cm, and imperial amounts mentioned in the text to metric.`;
 
 // The method of a recipe from text the user pasted or a page they linked.

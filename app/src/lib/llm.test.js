@@ -125,3 +125,13 @@ describe('steps', () => {
       'Title: Squash gnudi\nServes: 4\nIngredients:\n- 245 g ricotta (1 cup) [Gnudi]\n- 1 egg\n- salt (a pinch)\nNotes: Drain the ricotta well.');
   });
 });
+
+describe('English', () => {
+  it('every prompt asks for English, whatever the source language', async () => {
+    replies = [answer(card()), answer({ steps: ['Boil.'] }), answer({ steps: ['Boil.'] })];
+    await parseRecipe(endpoint, { title: '', text: 'Zuppa di pomodoro' });
+    await parseSteps(endpoint, 'Bollire.');
+    await suggestMethod(endpoint, { title: 'Zuppa', ingredients: [], notes: null });
+    for (const r of requests) expect(r.messages[0].content).toMatch(/Always write the (card|steps) in English/);
+  });
+});
