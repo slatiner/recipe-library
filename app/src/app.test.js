@@ -815,13 +815,29 @@ describe('the library', () => {
     expect(tiles(w)).toHaveLength(3);
   });
 
-  it('tags are ordered by use, and a picked tag moves to the front', async () => {
+  it('tags are ordered by use; a picked tag moves to the front and leaves only the tags it overlaps', async () => {
     seed = three();
     const w = await mountApp();
     const chips = () => w.findAll('.tag-chip').map((b) => b.text());
     expect(chips()).toEqual(['soup', 'baking', 'quick']);
     await w.findAll('.tag-chip').find((b) => b.text() === 'quick').trigger('click');
-    expect(chips()).toEqual(['quick', 'soup', 'baking']);
+    expect(chips()).toEqual(['quick', 'soup']);
+  });
+
+  it('several tags can be picked, a card needs all of them, and a second click drops one', async () => {
+    seed = three();
+    const w = await mountApp();
+    const chip = (t) => w.findAll('.tag-chip').find((b) => b.text() === t);
+    await chip('soup').trigger('click');
+    expect(tiles(w)).toEqual(['Tomato soup', 'Pea soup']);
+    await chip('quick').trigger('click');
+    expect(tiles(w)).toEqual(['Pea soup']);
+    expect(w.findAll('.tag-chip.active').map((b) => b.text())).toEqual(['soup', 'quick']);
+    await chip('soup').trigger('click');
+    expect(w.findAll('.tag-chip.active').map((b) => b.text())).toEqual(['quick']);
+    expect(tiles(w)).toEqual(['Pea soup']);
+    await chip('quick').trigger('click');
+    expect(tiles(w)).toHaveLength(3);
   });
 
   it('» shows every tag when they don\'t fit on one line, and « folds them again', async () => {

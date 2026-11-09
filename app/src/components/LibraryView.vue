@@ -4,7 +4,7 @@
 // pick mode: tap recipes, from either list, and copy their merged list.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { recipes, toggleStar, currentList, listFilters, showToast } from '../state.js';
-import { filterRecipes, allTags } from '../lib/recipes.js';
+import { filterRecipes, allTags, hasTags } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import { columnCount, dealColumns } from '../lib/mosaic.js';
 import { shoppingList } from '../lib/shopping.js';
@@ -18,13 +18,19 @@ const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label:
 // The current list's own filters (state.js keeps them while a recipe is open).
 const f = computed(() => listFilters[currentList.value]);
 const inList = computed(() => recipes.value.filter((r) => r.status === currentList.value));
-// Most used first. A picked tag goes to the front, so it's never folded away
-// behind More, and stays a chip even when no card has it any more (its last
-// one moved or was deleted), so the filter can still be seen and cleared.
+// Picked tags first, in the order picked, so they're never folded away behind
+// More, and stay chips even when no card has them any more (the last one moved
+// or was deleted), so the filter can still be seen and cleared. Then, most used
+// first, only the tags that some card with every picked tag also has.
 const tags = computed(() => {
-  const list = allTags(inList.value);
-  return f.value.tag ? [f.value.tag, ...list.filter((t) => t !== f.value.tag)] : list;
+  const picked = f.value.tags;
+  const others = allTags(inList.value.filter((r) => hasTags(r, picked)));
+  return [...picked, ...others.filter((t) => !picked.includes(t))];
 });
+function toggleTag(t) {
+  const picked = f.value.tags;
+  f.value.tags = picked.includes(t) ? picked.filter((x) => x !== t) : [...picked, t];
+}
 
 // The tags fold to one line; » appears only when they don't fit.
 const tagList = ref(null);
@@ -54,7 +60,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => observer && observer.disconnect());
 
-function clearFilters() { Object.assign(f.value, { query: '', tag: '', starredOnly: false }); }
+function clearFilters() { Object.assign(f.value, { query: '', tags: [], starredOnly: false }); }
 const totalTime = (r) => { const t = (r.prepMinutes || 0) + (r.cookMinutes || 0); return t ? `${t} min` : ''; };
 
 // The source site's photo (a link); a tile whose photo fails to load drops it.
@@ -113,8 +119,8 @@ async function star(r) {
     </div>
     <div v-if="tags.length" class="tag-row" :class="{ open: tagsOpen }">
       <div ref="tagList" class="tag-list">
-        <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tag === t }" :aria-pressed="f.tag === t"
-          @click="f.tag = f.tag === t ? '' : t">{{ t }}</button>
+        <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tags.includes(t) }" :aria-pressed="f.tags.includes(t)"
+          @click="toggleTag(t)">{{ t }}</button>
       </div>
       <button v-if="tagsOverflow || tagsOpen" class="link-btn tag-more" :aria-expanded="String(tagsOpen)"
         :aria-label="tagsOpen ? 'Fewer tags' : 'More tags'" :title="tagsOpen ? 'Fewer tags' : 'More tags'"

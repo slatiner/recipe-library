@@ -76,7 +76,7 @@ function savedList() {
 }
 export const currentList = ref(savedList());
 watch(currentList, (list) => { try { localStorage.setItem(LIST_KEY, list); } catch { /* not stored */ } });
-const noFilters = () => ({ query: '', tag: '', starredOnly: false });
+const noFilters = () => ({ query: '', tags: [], starredOnly: false });
 export const listFilters = reactive({ cooked: noFilters(), wishlist: noFilters() });
 
 // Recipes. Each throws the adapter's message, for the view to show.

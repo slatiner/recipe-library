@@ -49,11 +49,14 @@ export function formatAmount(i) {
 // Lower case without accents, so "creme" finds "Crème brûlée".
 export const fold = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function filterRecipes(list, { query = '', tag = '', starredOnly = false } = {}) {
+// A recipe has to carry every picked tag.
+export const hasTags = (r, tags) => tags.every((tag) => r.tags.some((t) => fold(t) === fold(tag)));
+
+export function filterRecipes(list, { query = '', tags = [], starredOnly = false } = {}) {
   const q = fold(query.trim());
   return list.filter((r) => {
     if (starredOnly && !r.starred) return false;
-    if (tag && !r.tags.some((t) => fold(t) === fold(tag))) return false;
+    if (!hasTags(r, tags)) return false;
     if (!q) return true;
     const hay = [r.title, r.summary, ...r.ingredients.map((i) => i.item), ...r.tags].map(fold).join('\n');
     return hay.includes(q);

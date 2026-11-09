@@ -58,7 +58,9 @@ describe('filterRecipes and allTags', () => {
     expect(ids(filterRecipes(list, { query: 'tomato' }))).toEqual(['2']);
   });
   it('filters by tag and by star', () => {
-    expect(ids(filterRecipes(list, { tag: 'soup' }))).toEqual(['2']);
+    expect(ids(filterRecipes(list, { tags: ['soup'] }))).toEqual(['2']);
+    expect(ids(filterRecipes(list, { tags: ['DESSERT', 'french'] }))).toEqual(['1']);
+    expect(ids(filterRecipes(list, { tags: ['dessert', 'soup'] }))).toEqual([]);
     expect(ids(filterRecipes(list, { starredOnly: true }))).toEqual(['1']);
   });
   it('no filters keeps everything', () => {
