@@ -1115,3 +1115,92 @@ describe('a shared recipe page', () => {
     expect(w.find('.shared-recipe img').exists()).toBe(false);
   });
 });
+
+describe('shopping list', () => {
+  const two = () => [
+    sampleRecipe(),
+    sampleRecipe({ id: 'r2', title: 'Banana bread', ingredients: [{ group: null, amount: 3, unit: 'pc', item: 'bananas', note: null }] }),
+  ];
+  const tile = (w, title) => w.findAll('.recipe-tile').find((t) => t.find('.tile-title').text() === title);
+  const barButton = (w, label) => w.findAll('.pick-bar button').find((b) => b.text() === label);
+  async function pickMode() {
+    seed = two();
+    const w = await mountApp();
+    window.location.hash = '#/';
+    await w.findAll('.library-bar button').find((b) => b.text() === 'Shopping list').trigger('click');
+    return w;
+  }
+
+  it('picking tiles selects them instead of opening them, and copies the list', async () => {
+    const writeText = stubClipboard();
+    const w = await pickMode();
+    expect(barButton(w, 'Copy list').attributes('disabled')).toBeDefined();
+    await tile(w, 'Tomato soup').trigger('click');
+    await tile(w, 'Banana bread').trigger('keydown', { key: 'Enter' });
+    expect(window.location.hash).toBe('#/');
+    expect(tile(w, 'Tomato soup').classes()).toContain('selected');
+    expect(tile(w, 'Tomato soup').attributes('aria-pressed')).toBe('true');
+    expect(w.find('.pick-bar').text()).toContain('2 selected');
+    expect(w.find('.recipe-tile .star-btn').exists()).toBe(false);
+    expect(w.find('.recipe-tile .cooked-btn').exists()).toBe(false);
+    await barButton(w, 'Copy list').trigger('click');
+    await flushPromises();
+    const text = writeText.mock.calls[0][0];
+    expect(text.startsWith('Shopping list: ')).toBe(true);
+    expect(text).toContain('Tomato soup');
+    expect(text).toContain('Banana bread');
+    expect(text).toContain('3 bananas');
+    expect(w.text()).toContain('List copied');
+    expect(w.find('.pick-bar').exists()).toBe(true);
+  });
+
+  it('clicking a selected tile again unselects it', async () => {
+    const w = await pickMode();
+    await tile(w, 'Tomato soup').trigger('click');
+    await tile(w, 'Tomato soup').trigger('click');
+    expect(w.find('.pick-bar').text()).toContain('0 selected');
+    expect(tile(w, 'Tomato soup').classes()).not.toContain('selected');
+  });
+
+  it('when copying fails, the list shows to copy by hand', async () => {
+    stubClipboard({ fails: true });
+    const w = await pickMode();
+    await tile(w, 'Banana bread').trigger('click');
+    await barButton(w, 'Copy list').trigger('click');
+    await flushPromises();
+    expect(w.find('.copy-fallback textarea').element.value).toContain('3 bananas');
+    expect(w.text()).not.toContain('List copied');
+  });
+
+  it('Cancel leaves pick mode, and a tile opens its recipe again', async () => {
+    const w = await pickMode();
+    await tile(w, 'Tomato soup').trigger('click');
+    await barButton(w, 'Cancel').trigger('click');
+    expect(w.find('.pick-bar').exists()).toBe(false);
+    await tile(w, 'Tomato soup').trigger('click');
+    expect(window.location.hash).toBe('#/recipe/r1');
+  });
+
+  it('a selected recipe that is deleted drops out of the count', async () => {
+    const w = await pickMode();
+    await tile(w, 'Tomato soup').trigger('click');
+    await tile(w, 'Banana bread').trigger('click');
+    state.recipes.value = state.recipes.value.filter((r) => r.id !== 'r2');
+    await flushPromises();
+    expect(w.find('.pick-bar').text()).toContain('1 selected');
+  });
+
+  it('the selection is kept across the two lists', async () => {
+    seed = [sampleRecipe(), sampleRecipe({ id: 'r2', title: 'Pea soup', status: 'cooked' })];
+    const writeText = stubClipboard();
+    const w = await mountApp();
+    await w.findAll('.library-bar button').find((b) => b.text() === 'Shopping list').trigger('click');
+    await tile(w, 'Tomato soup').trigger('click');
+    await w.findAll('.list-toggle button').find((b) => b.text() === 'Cooked').trigger('click');
+    await tile(w, 'Pea soup').trigger('click');
+    expect(w.find('.pick-bar').text()).toContain('2 selected');
+    await barButton(w, 'Copy list').trigger('click');
+    await flushPromises();
+    expect(writeText.mock.calls[0][0].split('\n')[0]).toBe('Shopping list: Tomato soup, Pea soup');
+  });
+});

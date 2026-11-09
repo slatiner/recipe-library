@@ -1,12 +1,16 @@
 <script setup>
 // The library: a Want to cook / Cooked toggle, search, a Starred toggle, tag chips and a mosaic of recipes,
-// newest first along the top row (lib/mosaic.js).
+// newest first along the top row (lib/mosaic.js). Shopping list switches to a
+// pick mode: tap recipes, from either list, and copy their merged list.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { recipes, toggleStar, currentList, listFilters } from '../state.js';
+import { recipes, toggleStar, currentList, listFilters, showToast } from '../state.js';
 import { filterRecipes, allTags } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import { columnCount, dealColumns } from '../lib/mosaic.js';
+import { shoppingList } from '../lib/shopping.js';
+import { copyText } from '../lib/clipboard.js';
 import CookedDialog from './CookedDialog.vue';
+import CopyFallback from './CopyFallback.vue';
 
 const error = ref('');
 
@@ -63,6 +67,30 @@ const cooking = ref(null);
 const cookedOpen = ref(false);
 function cooked(r) { cooking.value = r; cookedOpen.value = true; }
 
+// Pick mode. The selection is ids; what's selected is read from recipes, so a
+// deleted recipe drops out.
+const picking = ref(false);
+const picked = ref(new Set());
+const selected = computed(() => recipes.value.filter((r) => picked.value.has(r.id)));
+const fallbackList = ref('');
+function open(r) {
+  if (!picking.value) { go(`#/recipe/${r.id}`); return; }
+  const next = new Set(picked.value);
+  if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+  picked.value = next;
+}
+function stopPicking() {
+  picking.value = false;
+  picked.value = new Set();
+  fallbackList.value = '';
+}
+async function copyList() {
+  const text = shoppingList(selected.value);
+  fallbackList.value = '';
+  if (await copyText(text)) showToast('List copied');
+  else fallbackList.value = text;
+}
+
 async function star(r) {
   error.value = '';
   try { await toggleStar(r.id); } catch (e) { error.value = e.message; }
@@ -75,6 +103,8 @@ async function star(r) {
       <input v-model="f.query" class="search" type="search" placeholder="Search recipes and ingredients" aria-label="Search">
       <button class="input-btn starred-toggle" :aria-pressed="f.starredOnly" :class="{ active: f.starredOnly }"
         @click="f.starredOnly = !f.starredOnly">★ Starred</button>
+      <button class="input-btn shopping-toggle" :aria-pressed="String(picking)" :class="{ active: picking }"
+        @click="picking ? stopPicking() : (picking = true)">Shopping list</button>
       <!-- Pushed right; on a phone it takes the first line. -->
       <div class="list-toggle" role="group" aria-label="List">
         <button v-for="l in LISTS" :key="l.id" :class="{ active: currentList === l.id }"
@@ -91,6 +121,12 @@ async function star(r) {
         @click="tagsOpen = !tagsOpen; nextTick(measureTags)">{{ tagsOpen ? '«' : '»' }}</button>
     </div>
     <p v-if="error" class="library-error redeem-error">{{ error }}</p>
+    <div v-if="picking" class="pick-bar">
+      <span>{{ selected.length }} selected</span>
+      <button class="btn small" :disabled="!selected.length" @click="copyList">Copy list</button>
+      <button class="btn ghost small" @click="stopPicking">Cancel</button>
+      <CopyFallback v-if="fallbackList" :text="fallbackList" />
+    </div>
 
     <div v-if="!recipes.length" class="empty">No recipes yet.</div>
     <div v-else-if="!inList.length" class="empty">Nothing here yet.</div>
@@ -100,14 +136,15 @@ async function star(r) {
     <!-- Always rendered, so its width can be measured. -->
     <div ref="grid" class="recipe-grid" :hidden="!shown.length">
       <div v-for="(col, c) in dealt" :key="c" class="recipe-col">
-        <div v-for="r in col" :key="r.id" class="recipe-tile" role="link" tabindex="0"
-          @click="go(`#/recipe/${r.id}`)" @keydown.enter="go(`#/recipe/${r.id}`)">
+        <div v-for="r in col" :key="r.id" class="recipe-tile" :class="{ selected: picking && picked.has(r.id) }"
+          :role="picking ? 'button' : 'link'" :aria-pressed="picking ? String(picked.has(r.id)) : undefined" tabindex="0"
+          @click="open(r)" @keydown.enter="open(r)">
           <img v-if="photo(r)" class="tile-photo" :src="photo(r)" alt="" loading="lazy" referrerpolicy="no-referrer" @error="photoFailed(r)">
           <div class="tile-head">
             <h3 class="tile-title">{{ r.title }}</h3>
-            <button class="star-btn" :aria-pressed="String(!!r.starred)" :aria-label="r.starred ? 'Unstar' : 'Star'"
+            <button v-if="!picking" class="star-btn" :aria-pressed="String(!!r.starred)" :aria-label="r.starred ? 'Unstar' : 'Star'"
               @click.stop="star(r)" @keydown.enter.stop>{{ r.starred ? '★' : '☆' }}</button>
-            <button v-if="r.status === 'wishlist'" class="cooked-btn" aria-label="Cooked it" title="Cooked it"
+            <button v-if="!picking && r.status === 'wishlist'" class="cooked-btn" aria-label="Cooked it" title="Cooked it"
               @click.stop="cooked(r)" @keydown.enter.stop>✓</button>
           </div>
           <p v-if="r.summary" class="tile-summary">{{ r.summary }}</p>
