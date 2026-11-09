@@ -146,6 +146,24 @@ describe('invites', () => {
     expect(w.find('.redeem input').element.value).toBe('AAAA-BBBB-CCCC');
   });
 
+  it('signing out before redeeming forgets the invite, so the next account on the device doesn\'t get it', async () => {
+    window.history.replaceState(null, '', '/?invite=AAAA-BBBB-CCCC');
+    let w = await mountApp('signedOut');
+    w.unmount();
+    w = await mountApp('needsInvite');
+    await w.findAll('button').find((b) => b.text() === 'Sign out').trigger('click');
+    await flushPromises();
+    w.unmount();
+    w = await mountApp('signedOut');
+    expect(w.text()).not.toContain("You've been invited");
+  });
+
+  it('a member who opens an invite link doesn\'t keep the code', async () => {
+    window.history.replaceState(null, '', '/?invite=AAAA-BBBB-CCCC');
+    await mountApp('ok');
+    expect(localStorage.getItem('pendingInvite')).toBe(null);
+  });
+
   it('only admins see Invite someone; it creates a code', async () => {
     const w = await mountApp('ok', { isAdmin: true });
     await w.find('.avatar-btn').trigger('click');

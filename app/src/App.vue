@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { recipes, connection, initStorage, connectStorage, reconnectStorage, signOut, redeemInvite, requestAccess } from './state.js';
 import SettingsMenu from './components/SettingsMenu.vue';
 import InviteDialog from './components/InviteDialog.vue';
@@ -43,6 +43,16 @@ async function redeem() {
   } catch (e) { redeemError.value = e.message; }
   finally { redeeming.value = false; }
 }
+
+// The code belongs to whoever opened the link: forget it once they're in, or
+// when they sign out first, so the next account on the device doesn't get it.
+function forgetInvite() {
+  inviteCode.value = '';
+  try { localStorage.removeItem(PENDING); } catch (e) { /* storage unavailable */ }
+}
+watch(() => connection.state, (now, before) => {
+  if (now === 'ok' || (now === 'signedOut' && (before === 'needsInvite' || before === 'ok'))) forgetInvite();
+});
 
 // No code: ask the admins for one.
 const requestMessage = ref('');
