@@ -19,7 +19,7 @@ GitHub repo exists. The design is in
 |---|---|---|
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
-| 2 | Import from links | ✅ Done (Find a photo awaiting check, #16) |
+| 2 | Import from links | ✅ Done (Find a photo waiting on an Unsplash key, #16) |
 | 2.5 | Cooked & want to cook | 🔲 Not started |
 | 3 | Share & shopping | 🔲 Not started |
 | 4 | Dish photos | 🔲 Not started |
@@ -157,3 +157,14 @@ Proposed, to confirm when the phase starts (#15):
 - Recipes saved before this phase become wishes (most were imported to try).
 - One date per recipe (the last time cooked). A cooking log with several dates
   and notes per cook can come later, in Polish.
+
+### Find a photo: Pexels paused, moving to Unsplash (2026-11-09)
+Pexels stopped issuing new API keys (its API page says so, no end date), so
+the Pexels picker built in Phase 2 can't be switched on. The owner applied for
+an Unsplash app on 2026-11-09; Unsplash said 5–10 days. **Check at the start of
+each session until it's ready (#16).** When the Access Key arrives: switch
+`photo-search` to Unsplash (search API, `client_id` from `UNSPLASH_ACCESS_KEY`),
+trigger the photo's `download_location` when one is picked, credit "Photo by
+<name> on Unsplash" with `utm_source` links, and store `image_source = stock`
+as now. Fallback if Unsplash says no: Openverse (no key; only reusable
+licences, each credited).
