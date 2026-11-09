@@ -20,7 +20,7 @@ GitHub repo exists. The design is in
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
 | 2 | Import from links | ✅ Done (Find a photo waiting on an Unsplash key, #16) |
-| 2.5 | Cooked & want to cook | 🔲 Not started |
+| 2.5 | Cooked & want to cook | 🚧 Built, awaiting the owner's check (#15) |
 | 3 | Share & shopping | 🔲 Not started |
 | 4 | Dish photos | 🔲 Not started |
 | 5 | Video sources (experimental) | 🔲 Not started |
@@ -58,8 +58,7 @@ with the same cards, search, tags and star, and a toggle between them. Adding a
 recipe puts it in the list you're on, so a dish you've already made goes straight
 to Cooked. A ✓ on a wish moves it to Cooked in place, asking for the date cooked
 (optional, today filled in). Cooked cards show the date and can change or clear
-it in Edit. Each list keeps its own filters; the header count shows the current
-list.
+it in Edit. Each list keeps its own filters. No list counts.
 
 ### 3. Share & shopping
 Public share link per card (read-only, no sign-in). Select recipes → merged
@@ -153,10 +152,12 @@ plus `cooked_on date null`, which the database refuses on a wish. Placed as 2.5,
 before sharing, so the shopping list (Phase 3) can be built from wishes you plan
 to cook; it depends on nothing after Phase 2. Unlike Content_Project, wishes are
 not private: a recipe you want to cook can still be shared by link.
-Proposed, to confirm when the phase starts (#15):
+Confirmed by the owner when the phase started:
 - Recipes saved before this phase become wishes (most were imported to try).
 - One date per recipe (the last time cooked). A cooking log with several dates
   and notes per cook can come later, in Polish.
+- No list counts. The app opens on the list last used on that device (Want to
+  cook the first time). A cooked recipe can't go back to Want to cook yet.
 
 ### Find a photo: Pexels paused, moving to Unsplash (2026-11-09)
 Pexels stopped issuing new API keys (its API page says so, no end date), so
