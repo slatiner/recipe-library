@@ -5,12 +5,12 @@
 // Only members may use it: an account that hasn't redeemed an invite gets 403.
 // Each member has 50 requests per UTC day; past that the reply is 429 with
 // code 'daily_limit'.
-// Requests are passed to Groq as they are, limited to the app's model and token
-// cap so the shared quota can't be spent on anything else.
+// Only the fields the app uses are passed on, with the tokens capped (body.js).
+// The server key is checked before a request is counted, so a broken deploy
+// doesn't spend anyone's daily limit.
+import { groqBody } from './body.js';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODELS = new Set(['openai/gpt-oss-20b', 'openai/gpt-oss-120b']);
-const MAX_TOKENS = 1500;
 const ORIGINS = new Set(['https://slatiner.github.io', 'http://localhost:5173']);
 
 function corsHeaders(origin: string) {
@@ -41,14 +41,17 @@ Deno.serve(async (req) => {
   });
   if (!who.ok) return reply(401, { error: { code: 'not_signed_in', message: 'Sign in to use the assistant.' } });
 
-  let body: Record<string, unknown>;
+  let input: Record<string, unknown>;
   try {
-    body = await req.json();
+    input = await req.json();
   } catch {
     return reply(400, { error: { message: 'Body must be JSON' } });
   }
-  if (!MODELS.has(String(body.model))) return reply(400, { error: { message: 'Model not allowed' } });
-  body.max_completion_tokens = Math.min(Number(body.max_completion_tokens) || MAX_TOKENS, MAX_TOKENS);
+  const body = groqBody(input);
+  if (!body) return reply(400, { error: { message: 'Model not allowed' } });
+
+  const key = Deno.env.get('GROQ_API_KEY');
+  if (!key) return reply(500, { error: { code: 'no_server_key', message: 'GROQ_API_KEY is not set' } });
 
   // Membership and the daily limit, checked by the database as the caller.
   const claim = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/rpc/claim_assistant_request`, {
@@ -59,11 +62,10 @@ Deno.serve(async (req) => {
   if (!claim.ok) {
     const err = await claim.json().catch(() => ({}));
     if (err.message === 'daily_limit') return reply(429, { error: { code: 'daily_limit', message: err.details } });
-    return reply(403, { error: { code: 'not_member', message: 'Redeem an invite code to use the assistant.' } });
+    if (err.code === '42501') return reply(403, { error: { code: 'not_member', message: 'Redeem an invite code to use the assistant.' } });
+    return reply(502, { error: { code: 'limit_check_failed', message: 'Could not check your daily limit. Try again.' } });
   }
 
-  const key = Deno.env.get('GROQ_API_KEY');
-  if (!key) return reply(500, { error: { code: 'no_server_key', message: 'GROQ_API_KEY is not set' } });
   const groq = await fetch(GROQ_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
