@@ -90,7 +90,10 @@ async function remove() {
     Recipe not found. <a href="#/">Back to the library</a>
   </div>
   <article v-else class="recipe-page">
-    <button v-if="!editing" type="button" class="close-btn" aria-label="Close" @click="go('#/')">×</button>
+    <div v-if="!editing" class="corner-actions">
+      <button type="button" class="close-btn edit-btn" aria-label="Edit recipe" @click="editing = true">✎</button>
+      <button type="button" class="close-btn" aria-label="Close" @click="go('#/')">×</button>
+    </div>
     <RecipeEditor v-if="editing" corner :model-value="recipe" :saving="saving" :error="error"
       @save="save" @cancel="editing = false; error = ''" />
     <template v-else>

@@ -911,6 +911,12 @@ describe('a recipe page', () => {
     expect(badge.classes()).toContain('unit-g');
   });
 
+  it('the corner pencil opens the editor', async () => {
+    const w = await openRecipe();
+    await w.find('.corner-actions button[aria-label="Edit recipe"]').trigger('click');
+    expect(w.find('.recipe-editor input.title').element.value).toBe('Tomato soup');
+  });
+
   it('while editing, the corner × cancels and the corner ✓ saves', async () => {
     const w = await openRecipe();
     const edit = () => w.findAll('.recipe-page button').find((b) => b.text() === 'Edit').trigger('click');
@@ -992,7 +998,7 @@ describe('a recipe page', () => {
     expect(page.find('.back-link').exists()).toBe(false);
     const order = [...page.element.children].map((el) => el.className);
     expect(order.indexOf('recipe-actions')).toBeGreaterThan(order.indexOf('method'));
-    await page.find('button.close-btn').trigger('click');
+    await page.find('button[aria-label="Close"]').trigger('click');
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await flushPromises();
     expect(window.location.hash).toBe('#/');
