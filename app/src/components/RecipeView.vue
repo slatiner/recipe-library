@@ -91,7 +91,7 @@ async function remove() {
   </div>
   <article v-else class="recipe-page">
     <button v-if="!editing" type="button" class="close-btn" aria-label="Close" @click="go('#/')">×</button>
-    <RecipeEditor v-if="editing" :model-value="recipe" :saving="saving" :error="error"
+    <RecipeEditor v-if="editing" corner :model-value="recipe" :saving="saving" :error="error"
       @save="save" @cancel="editing = false; error = ''" />
     <template v-else>
       <figure v-if="imageLink && !imageFailed" class="recipe-photo">

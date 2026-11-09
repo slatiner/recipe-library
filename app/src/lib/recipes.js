@@ -33,11 +33,17 @@ export function normalizeIngredient(i) {
   return { group: text(i.group), amount, unit, item: typeof i.item === 'string' ? i.item.trim() : '', note };
 }
 
+// The number and the unit to show: { n: '0.33', unit: 'tsp' }. A counted item
+// has no unit; no amount gives { n: '', unit: null }.
+export function amountParts(i) {
+  if (i.amount === null || i.amount === undefined) return { n: '', unit: null };
+  return { n: String(Math.round(i.amount * 100) / 100), unit: i.unit && i.unit !== 'pc' ? i.unit : null };
+}
+
 // "200 g", "0.33 tsp", "3" (counted), or "" when there's no amount.
 export function formatAmount(i) {
-  if (i.amount === null || i.amount === undefined) return '';
-  const n = String(Math.round(i.amount * 100) / 100);
-  return i.unit && i.unit !== 'pc' ? `${n} ${i.unit}` : n;
+  const { n, unit } = amountParts(i);
+  return unit ? `${n} ${unit}` : n;
 }
 
 // Lower case without accents, so "creme" finds "Crème brûlée".

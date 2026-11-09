@@ -3,7 +3,7 @@
 // public share page: times, ingredients by section, the method (with the AI
 // badge), notes, tags and the source. The no-steps slot fills an empty method.
 import { computed } from 'vue';
-import { formatAmount } from '../lib/recipes.js';
+import { amountParts } from '../lib/recipes.js';
 
 const props = defineProps({ recipe: { type: Object, required: true } });
 
@@ -35,7 +35,10 @@ const sourceLink = computed(() => (/^https?:\/\//i.test(props.recipe.sourceUrl |
       <h4 v-if="s.group">{{ s.group }}</h4>
       <ul>
         <li v-for="(i, k) in s.items" :key="k">
-          <b v-if="formatAmount(i)" class="amt">{{ formatAmount(i) }}</b> {{ i.item }}
+          <template v-if="amountParts(i).n">
+            <b class="amt">{{ amountParts(i).n }}</b> <span v-if="amountParts(i).unit" class="unit-badge" :class="`unit-${amountParts(i).unit}`">{{ amountParts(i).unit }}</span>
+          </template>
+          {{ i.item }}
           <span v-if="i.note" class="ing-note">{{ i.note }}</span>
         </li>
       </ul>

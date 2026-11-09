@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, formatAmount, filterRecipes, allTags, today, formatCookedOn } from './recipes.js';
+import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, amountParts, formatAmount, filterRecipes, allTags, today, formatCookedOn } from './recipes.js';
 
 const ing = (o) => ({ group: null, amount: null, unit: null, item: 'x', note: null, ...o });
 
@@ -33,6 +33,14 @@ describe('formatAmount', () => {
 
   it('a counted item shows the number alone', () => {
     expect(formatAmount(ing({ amount: 3, unit: 'pc' }))).toBe('3');
+  });
+});
+
+describe('amountParts', () => {
+  it('splits the number from the unit shown', () => {
+    expect(amountParts(ing({ amount: 0.333333, unit: 'tbsp' }))).toEqual({ n: '0.33', unit: 'tbsp' });
+    expect(amountParts(ing({ amount: 3, unit: 'pc' }))).toEqual({ n: '3', unit: null });
+    expect(amountParts(ing({ amount: null, unit: 'g' }))).toEqual({ n: '', unit: null });
   });
 });
 

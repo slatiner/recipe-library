@@ -13,6 +13,8 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
   error: { type: String, default: '' },
   cancelLabel: { type: String, default: 'Cancel' },
+  // Also show Cancel (×) and Save (✓) in the top right corner, on the recipe page.
+  corner: { type: Boolean, default: false },
 });
 const emit = defineEmits(['save', 'cancel']);
 
@@ -75,6 +77,10 @@ function save() {
 
 <template>
   <form class="recipe-editor" @submit.prevent="save">
+    <div v-if="corner" class="corner-actions">
+      <button type="button" class="close-btn" :aria-label="cancelLabel" @click="emit('cancel')">×</button>
+      <button type="submit" class="close-btn apply-btn" aria-label="Save" :disabled="!canSave">✓</button>
+    </div>
     <figure v-if="imageLink" class="recipe-photo editor-photo">
       <img v-if="!imageFailed" :src="imageLink" :alt="draft.title" referrerpolicy="no-referrer" @error="imageFailed = true">
       <figcaption>

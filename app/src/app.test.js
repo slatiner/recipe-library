@@ -904,6 +904,28 @@ describe('a recipe page', () => {
     expect(w.findAll('.recipe-page ol.steps li').map((li) => li.text())).toEqual(['Mix.', 'Bake.']);
   });
 
+  it('shows each unit as a coloured badge', async () => {
+    const w = await openRecipe();
+    const badge = w.find('.recipe-page .ingredients .unit-badge');
+    expect(badge.text()).toBe('g');
+    expect(badge.classes()).toContain('unit-g');
+  });
+
+  it('while editing, the corner × cancels and the corner ✓ saves', async () => {
+    const w = await openRecipe();
+    const edit = () => w.findAll('.recipe-page button').find((b) => b.text() === 'Edit').trigger('click');
+    await edit();
+    await w.find('.recipe-editor input.title').setValue('Not kept');
+    await w.find('.corner-actions button[aria-label="Cancel"]').trigger('click');
+    expect(w.find('.recipe-editor').exists()).toBe(false);
+    expect(w.find('.recipe-page h2').text()).toBe('Tomato soup');
+    await edit();
+    await w.find('.recipe-editor input.title').setValue('Corner soup');
+    await w.find('.corner-actions .apply-btn').trigger('click');
+    await flushPromises();
+    expect(w.find('.recipe-page h2').text()).toBe('Corner soup');
+  });
+
   it('edit and save updates the page and the library', async () => {
     const w = await openRecipe();
     await w.findAll('.recipe-page button').find((b) => b.text() === 'Edit').trigger('click');
