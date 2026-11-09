@@ -370,7 +370,10 @@ header.top .account-menu{align-self:center;}
 /* Library grid and the recipe page. */
 .library-bar .search{flex:1;min-width:180px;max-width:400px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);font-family:inherit;font-size:13px;color:var(--ink);}
 .starred-toggle.active{border-color:var(--ink);background:var(--ink);color:#fff;}
-.library > .list-toggle{margin:16px 0 0;}
+@media (max-width: 640px){
+  .library-bar .list-toggle{order:-1;flex-basis:100%;margin-left:0;}
+  .library-bar .list-toggle button{flex:1;}
+}
 .cooked-btn{border:0;background:none;font-size:16px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:2px 4px;}
 .cooked-btn:hover{color:var(--ink);}
 .cooked-on{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}

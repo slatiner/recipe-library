@@ -59,15 +59,15 @@ async function star(r) {
 
 <template>
   <div class="library">
-    <div class="list-toggle" role="group" aria-label="List">
-      <button v-for="l in LISTS" :key="l.id" :class="{ active: currentList === l.id }"
-        :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
-    </div>
     <div class="library-bar">
       <input v-model="f.query" class="search" type="search" placeholder="Search recipes and ingredients" aria-label="Search">
       <button class="input-btn starred-toggle" :aria-pressed="f.starredOnly" :class="{ active: f.starredOnly }"
         @click="f.starredOnly = !f.starredOnly">★ Starred</button>
-      <span style="flex:1;"></span>
+      <!-- Pushed right, next to Add recipe; on a phone it takes the first line. -->
+      <div class="list-toggle" role="group" aria-label="List">
+        <button v-for="l in LISTS" :key="l.id" :class="{ active: currentList === l.id }"
+          :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
+      </div>
       <button class="add-new-btn" @click="emit('add')">Add recipe</button>
     </div>
     <div v-if="tags.length" class="tag-row">
