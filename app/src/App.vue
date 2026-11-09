@@ -73,7 +73,7 @@ onMounted(initStorage);
   <div class="wrap">
     <header ref="headerEl" class="top" :class="{ compact }">
       <h1 class="logo">
-        <svg viewBox="0 0 300 64" role="img" aria-label="Recipe Library">
+        <svg viewBox="0 0 340 64" role="img" aria-label="Recipe Library">
           <rect x="6" y="22" width="52" height="6" rx="3" fill="#a8503a"/>
           <path d="M10 31h44v14a11 11 0 0 1-11 11H21a11 11 0 0 1-11-11z" fill="#3f6b4f"/>
           <rect x="27" y="13" width="10" height="7" rx="2" fill="#a8503a"/>
