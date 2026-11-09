@@ -16,7 +16,7 @@ metric in v1, a metric/US setting comes later; optional title field next to the
 paste box.
 
 **Assumed (correct me):** same constraints as Content_Project (MIT, open source,
-no paid dependencies beyond hosting); phone-first UI; no images on cards in v1.
+no paid dependencies beyond hosting); phone-first UI; images on cards: the source site's photo (Phase 2), uploads (Phase 4).
 
 **Success for v1 (Phases 0–3):** paste an Instagram link or text → a correct,
 editable card in under ~10 s; find it again by search, tag or star; send a
@@ -77,6 +77,7 @@ One table, per user (no shared catalogue).
 | source_kind | text | `text` \| `instagram` \| `web` \| `youtube` |
 | source_url | text null | |
 | source_author | text null | e.g. Instagram handle |
+| image_url | text null | the source site's own photo, hotlinked (Phase 2); never shown on the public page |
 | source_text | text | the raw pasted/fetched text, kept so a card can be re-parsed |
 | starred | bool default false | |
 | share_token | uuid null unique | set = public link on (Phase 3) |
@@ -104,6 +105,9 @@ fills it; otherwise the title stays empty and the preview asks the user for one
   no login wall). Unofficial and against Meta's automated-access terms; may break
   or be blocked from Supabase IPs. Fallback: "Couldn't read that post. Paste the
   caption instead."
+- The page's photo (JSON-LD `image`, else `og:image`) comes back as
+  `imageUrl` and is saved as `image_url`: a link, not a copy, shown on the card
+  with "Photo: <site>". Instagram images are skipped (signed links expire).
 
 **Missing steps (Phase 2).** Many posts list ingredients and say "full recipe on
 my website". The card is flagged *Steps missing* and offers:
@@ -143,6 +147,4 @@ as a header. Nothing is stored.
 
 ## Open questions
 
-- `gpt-oss-120b` for *Suggest a method*: check its free-tier limits on Groq
-  before choosing it over `gpt-oss-20b`.
 - App name and logo (working name: Recipe Library).
