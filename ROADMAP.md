@@ -18,7 +18,7 @@ GitHub repo exists. The design is in
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Scaffold & port | ✅ Done |
-| 1 | Recipe card core | 🟡 In progress |
+| 1 | Recipe card core | ✅ Done |
 | 2 | Import from links | 🔲 Not started |
 | 3 | Share & shopping | 🔲 Not started |
 | 4 | Video sources (experimental) | 🔲 Not started |
