@@ -44,7 +44,7 @@ select is(
   (select array_agg(p.proname::text order by 1) from pg_proc p
     where p.pronamespace = 'public'::regnamespace and p.prorettype <> 'trigger'::regtype
       and has_function_privilege('anon', p.oid, 'execute')),
-  null, 'signed-out visitors can call no functions (trigger functions aside)');
+  array['get_shared_recipe'], 'signed-out visitors can call only get_shared_recipe (trigger functions aside)');
 
 -- ---- Fixtures: an admin (a), a member (b), a newcomer without an invite (c) ----
 insert into auth.users (id, email, raw_user_meta_data) values
