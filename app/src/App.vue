@@ -1,19 +1,22 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { connection, initStorage, connectStorage, reconnectStorage, signOut, redeemInvite, requestAccess } from './state.js';
+import { connection, toast, initStorage, connectStorage, reconnectStorage, signOut, redeemInvite, requestAccess } from './state.js';
 import SettingsMenu from './components/SettingsMenu.vue';
 import InviteDialog from './components/InviteDialog.vue';
 import AccountDialog from './components/AccountDialog.vue';
 import AddRecipeDialog from './components/AddRecipeDialog.vue';
 import LibraryView from './components/LibraryView.vue';
 import RecipeView from './components/RecipeView.vue';
+import SharedRecipe from './components/SharedRecipe.vue';
 import { route } from './lib/route.js';
 import GoogleButton from './components/GoogleButton.vue';
 import { useScrollChrome } from './lib/scrollChrome.js';
 
-const showMain = computed(() => connection.state === 'ok');
-const showSignIn = computed(() => connection.state === 'signedOut');
-const showRedeem = computed(() => connection.state === 'needsInvite');
+// A share link (#/r/<token>) shows the public page to everyone, signed in or not.
+const shared = computed(() => route.name === 'shared');
+const showMain = computed(() => !shared.value && connection.state === 'ok');
+const showSignIn = computed(() => !shared.value && connection.state === 'signedOut');
+const showRedeem = computed(() => !shared.value && connection.state === 'needsInvite');
 const dot = computed(() => (connection.state === 'warn' ? 'warn' : ''));
 
 const inviteOpen = ref(false);
@@ -93,7 +96,9 @@ onMounted(initStorage);
         @invite="inviteOpen = true" @account="accountOpen = true" @sign-out="signOut" />
     </header>
 
-    <div v-if="connection.state === 'warn' || connection.state === 'checking'" class="filebar">
+    <SharedRecipe v-if="shared" :token="route.id" :key="route.id" />
+
+    <div v-if="!shared && (connection.state === 'warn' || connection.state === 'checking')" class="filebar">
       <span class="dot" :class="dot"></span>
       <span>{{ connection.text }}</span>
       <span style="flex:1;"></span>
@@ -140,6 +145,7 @@ onMounted(initStorage);
       <LibraryView v-else />
       <footer class="site-foot"><a href="privacy.html">Privacy</a> · <a href="https://github.com/slatiner/recipe-library">Source</a></footer>
     </template>
+    <div v-if="toast" class="toast" role="status">{{ toast }}</div>
   </div>
 
   <InviteDialog v-model:open="inviteOpen" />

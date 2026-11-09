@@ -11,6 +11,8 @@ let seed = [];
 let failures = {};
 // What llmEndpoint() returns: null (signed out) or the proxy.
 let endpoint = null;
+// What getSharedRecipe returns for any token: a public card, or null.
+let shared = null;
 
 function sampleRecipe(over = {}) {
   return {
@@ -72,6 +74,9 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
       calls.push(['setStarred', id, starred]);
       if (failures.star) throw new Error(failures.star);
     },
+    async shareRecipe(id) { calls.push(['shareRecipe', id]); return 't1'; },
+    async stopSharing(id) { calls.push(['stopSharing', id]); },
+    async getSharedRecipe(token) { calls.push(['getSharedRecipe', token]); return structuredClone(shared); },
   };
 }
 
@@ -94,6 +99,7 @@ beforeEach(() => {
   seed = [];
   failures = {};
   endpoint = null;
+  shared = null;
   window.location.hash = '';
   try { localStorage.clear(); } catch (e) { /* jsdom without storage */ }
 });
@@ -987,5 +993,125 @@ describe('privacy', () => {
   it('the library has a privacy link in the footer', async () => {
     const w = await mountApp();
     expect(w.find('footer.site-foot a[href="privacy.html"]').exists()).toBe(true);
+  });
+});
+
+// navigator.clipboard.writeText as a spy; fails = true makes it reject.
+function stubClipboard({ fails = false } = {}) {
+  const writeText = vi.fn(async () => { if (fails) throw new Error('denied'); });
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+  return writeText;
+}
+
+describe('share link', () => {
+  async function openRecipe(over = {}) {
+    seed = [sampleRecipe(over)];
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    return w;
+  }
+  const button = (w, label) => w.findAll('.recipe-page button').find((b) => b.text() === label);
+
+  it('Share link turns sharing on and copies the link', async () => {
+    const writeText = stubClipboard();
+    const w = await openRecipe();
+    await button(w, 'Share link').trigger('click');
+    await flushPromises();
+    expect(adapter.calls).toContainEqual(['shareRecipe', 'r1']);
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/#\/r\/t1$/));
+    expect(w.text()).toContain('Link copied');
+    expect(w.find('.share-row').text()).toContain('Copy link');
+    expect(w.find('.share-row').text()).toContain('Stop sharing');
+    expect(button(w, 'Share link')).toBeUndefined();
+  });
+
+  it('a shared recipe shows the share row and copies again', async () => {
+    const writeText = stubClipboard();
+    const w = await openRecipe({ shareToken: 't9' });
+    await button(w, 'Copy link').trigger('click');
+    await flushPromises();
+    expect(adapter.calls.some((c) => c[0] === 'shareRecipe')).toBe(false);
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/#\/r\/t9$/));
+  });
+
+  it('when copying fails, the link shows to copy by hand', async () => {
+    stubClipboard({ fails: true });
+    const w = await openRecipe();
+    await button(w, 'Share link').trigger('click');
+    await flushPromises();
+    const box = w.find('.copy-fallback textarea');
+    expect(box.element.value).toMatch(/#\/r\/t1$/);
+    expect(box.attributes('readonly')).toBeDefined();
+    expect(w.find('.copy-fallback').text()).toContain('Copy it from here');
+    expect(w.text()).not.toContain('Link copied');
+  });
+
+  it('Stop sharing turns it off', async () => {
+    stubClipboard();
+    const w = await openRecipe({ shareToken: 't9' });
+    await button(w, 'Stop sharing').trigger('click');
+    await flushPromises();
+    expect(adapter.calls).toContainEqual(['stopSharing', 'r1']);
+    expect(w.find('.share-row').exists()).toBe(false);
+    expect(button(w, 'Share link')).toBeDefined();
+  });
+});
+
+describe('a shared recipe page', () => {
+  const publicCard = (over = {}) => ({
+    title: 'Tomato soup', summary: 'A quick soup.', servings: 4, prepMinutes: 10, cookMinutes: 30,
+    ingredients: [{ group: null, amount: 200, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
+    stepsOrigin: 'ai_suggested', tags: ['soup'], notes: 'Good cold.', sourceKind: 'web', sourceUrl: 'https://site.example/soup', sourceAuthor: 'Site',
+    imageUrl: null, imageSource: null, imageCredit: null, imageCreditUrl: null, ...over,
+  });
+  async function openShared(connState = 'signedOut') {
+    window.location.hash = '#/r/t1';
+    return mountApp(connState);
+  }
+
+  it('a signed-out visitor sees the recipe, without sign-in or owner actions', async () => {
+    shared = publicCard();
+    const w = await openShared();
+    const page = w.find('.shared-recipe');
+    expect(adapter.calls).toContainEqual(['getSharedRecipe', 't1']);
+    expect(page.find('h2').text()).toBe('Tomato soup');
+    expect(page.find('.ingredients').text()).toContain('200 g tomatoes');
+    expect(page.find('.ai-badge').exists()).toBe(true);
+    expect(page.text()).toContain('Good cold.');
+    expect(w.find('.gsi-btn').exists()).toBe(false);
+    expect(w.find('.star-btn').exists()).toBe(false);
+    expect(w.findAll('button').map((b) => b.text())).not.toContain('Edit');
+    expect(w.findAll('button').map((b) => b.text())).not.toContain('Delete');
+    expect(w.find('.add-new-btn').exists()).toBe(false);
+    expect(w.find('.shared-recipe a[href="privacy.html"]').exists()).toBe(true);
+  });
+
+  it('a signed-in member sees the public page too, not the library', async () => {
+    shared = publicCard();
+    seed = [sampleRecipe()];
+    const w = await openShared('ok');
+    expect(w.find('.shared-recipe').exists()).toBe(true);
+    expect(w.find('.recipe-tile').exists()).toBe(false);
+    expect(w.find('.add-new-btn').exists()).toBe(false);
+  });
+
+  it('a bad or revoked link says so', async () => {
+    const w = await openShared();
+    expect(w.find('.shared-recipe').text()).toContain("This link doesn't work any more. Ask for a new one.");
+  });
+
+  it('a stock photo shows with its credit', async () => {
+    shared = publicCard({ imageUrl: 'https://img.example/p.jpg', imageSource: 'stock', imageCredit: 'Jane Doe', imageCreditUrl: 'https://img.example/@jane' });
+    const w = await openShared();
+    expect(w.find('.shared-recipe img').attributes('src')).toBe('https://img.example/p.jpg');
+    expect(w.find('.shared-recipe .photo-credit').text()).toContain('Jane Doe');
+  });
+
+  it('no photo, no image', async () => {
+    shared = publicCard();
+    const w = await openShared();
+    expect(w.find('.shared-recipe img').exists()).toBe(false);
   });
 });

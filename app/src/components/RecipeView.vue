@@ -1,9 +1,10 @@
 <script setup>
 // One recipe on its own page (#/recipe/<id>), as a card: read it, star it,
-// edit it in place or delete it; the X goes back to the library.
+// share it by link, edit it in place or delete it; the X goes back to the library.
 import { computed, ref } from 'vue';
-import { recipes, saveRecipe, deleteRecipe, toggleStar } from '../state.js';
-import { formatAmount, formatCookedOn } from '../lib/recipes.js';
+import { recipes, saveRecipe, deleteRecipe, toggleStar, shareRecipe, stopSharing, shareUrl, showToast } from '../state.js';
+import { formatCookedOn } from '../lib/recipes.js';
+import { copyText } from '../lib/clipboard.js';
 import { go } from '../lib/route.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
@@ -11,28 +12,12 @@ import MissingSteps from './MissingSteps.vue';
 import PhotoPicker from './PhotoPicker.vue';
 import PhotoCredit from './PhotoCredit.vue';
 import CookedDialog from './CookedDialog.vue';
+import RecipeBody from './RecipeBody.vue';
+import CopyFallback from './CopyFallback.vue';
 import { stockPhoto } from '../lib/photos.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const recipe = computed(() => recipes.value.find((r) => r.id === props.id) || null);
-
-// Ingredients in their sections, in the order they first appear.
-const sections = computed(() => {
-  const out = [];
-  for (const i of recipe.value.ingredients) {
-    const last = out.at(-1);
-    if (last && last.group === i.group) last.items.push(i);
-    else out.push({ group: i.group, items: [i] });
-  }
-  return out;
-});
-const times = computed(() => {
-  const r = recipe.value;
-  return [r.servings && `Serves ${r.servings}`, r.prepMinutes && `Prep ${r.prepMinutes} min`, r.cookMinutes && `Cook ${r.cookMinutes} min`].filter(Boolean);
-});
-
-// Only web addresses become links; anything else (javascript:...) is shown as text.
-const sourceLink = computed(() => (/^https?:\/\//i.test(recipe.value.sourceUrl || '') ? recipe.value.sourceUrl : null));
 
 // The source site's photo, linked rather than copied; hidden if it stops loading.
 const imageLink = computed(() => (/^https?:\/\//i.test(recipe.value.imageUrl || '') ? recipe.value.imageUrl : null));
@@ -70,6 +55,24 @@ async function star() {
   try { await toggleStar(props.id); } catch (e) { error.value = e.message; }
 }
 
+// Share link turns sharing on and copies the link; if the clipboard refuses,
+// the link shows to copy by hand.
+const fallbackLink = ref('');
+async function copyLink() {
+  error.value = '';
+  fallbackLink.value = '';
+  try {
+    const url = shareUrl(recipe.value.shareToken || await shareRecipe(props.id));
+    if (await copyText(url)) showToast('Link copied');
+    else fallbackLink.value = url;
+  } catch (e) { error.value = e.message; }
+}
+async function unshare() {
+  error.value = '';
+  fallbackLink.value = '';
+  try { await stopSharing(props.id); } catch (e) { error.value = e.message; }
+}
+
 async function remove() {
   error.value = '';
   try {
@@ -102,44 +105,19 @@ async function remove() {
       </div>
       <p v-if="recipe.status === 'cooked' && recipe.cookedOn" class="cooked-on">{{ formatCookedOn(recipe.cookedOn) }}</p>
       <p v-if="recipe.summary" class="recipe-summary">{{ recipe.summary }}</p>
-      <p v-if="times.length" class="recipe-times">{{ times.join(' · ') }}</p>
-
-      <section v-if="recipe.ingredients.length" class="ingredients">
-        <h3>Ingredients</h3>
-        <template v-for="(s, n) in sections" :key="n">
-          <h4 v-if="s.group">{{ s.group }}</h4>
-          <ul>
-            <li v-for="(i, k) in s.items" :key="k">
-              <b v-if="formatAmount(i)" class="amt">{{ formatAmount(i) }}</b> {{ i.item }}
-              <span v-if="i.note" class="ing-note">{{ i.note }}</span>
-            </li>
-          </ul>
-        </template>
-      </section>
-
-      <section class="method">
-        <h3>Method</h3>
-        <p v-if="recipe.steps.length && recipe.stepsOrigin === 'ai_suggested'" class="ai-badge">AI suggested, may differ from the creator's</p>
-        <ol v-if="recipe.steps.length" class="steps">
-          <li v-for="(s, n) in recipe.steps" :key="n">{{ s.text }}</li>
-        </ol>
-        <MissingSteps v-else :recipe="recipe" @steps="addSteps" />
-      </section>
-
-      <section v-if="recipe.notes" class="notes">
-        <h3>Notes</h3>
-        <p>{{ recipe.notes }}</p>
-      </section>
-      <div v-if="recipe.tags.length" class="tile-meta">
-        <span v-for="t in recipe.tags" :key="t" class="tile-tag">{{ t }}</span>
+      <RecipeBody :recipe="recipe">
+        <template #no-steps><MissingSteps :recipe="recipe" @steps="addSteps" /></template>
+      </RecipeBody>
+      <div v-if="recipe.shareToken" class="share-row">
+        <span>Shared by link</span>
+        <button class="btn ghost small" @click="copyLink">Copy link</button>
+        <button class="btn ghost small" @click="unshare">Stop sharing</button>
       </div>
-      <p v-if="recipe.sourceAuthor || recipe.sourceUrl" class="recipe-source">
-        From <a v-if="sourceLink" :href="sourceLink" target="_blank" rel="noopener noreferrer">{{ recipe.sourceAuthor || sourceLink }}</a>
-        <span v-else>{{ recipe.sourceAuthor || recipe.sourceUrl }}</span>
-      </p>
+      <CopyFallback v-if="fallbackLink" :text="fallbackLink" />
       <p v-if="error" class="redeem-error">{{ error }}</p>
       <div class="recipe-actions">
         <button v-if="recipe.status === 'wishlist'" class="btn small" @click="cookedOpen = true">Cooked it</button>
+        <button v-if="!recipe.shareToken" class="btn ghost small" @click="copyLink">Share link</button>
         <button class="btn ghost small" @click="editing = true">Edit</button>
         <button class="btn danger small" @click="confirmOpen = true">Delete</button>
       </div>

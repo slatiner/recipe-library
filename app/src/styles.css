@@ -451,3 +451,13 @@ header.top .account-menu{align-self:center;}
 .recipe-page .tile-meta{margin-top:18px;}
 .site-foot{margin-top:48px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-soft);text-align:center;}
 .site-foot a,.setup-foot a{color:inherit;}
+
+/* Share link: the row under a shared recipe, and the public page (#/r/<token>). */
+.share-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 0;font-size:13px;color:var(--ink-soft);}
+.share-row span{margin-right:auto;}
+.shared-recipe .site-foot{margin-top:32px;}
+/* Text the clipboard refused, to copy by hand. */
+.copy-fallback{margin:12px 0 0;font-size:13px;}
+.copy-fallback p{margin:0 0 4px;color:var(--ink-soft);}
+.copy-fallback textarea{width:100%;min-height:64px;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);color:var(--ink);resize:vertical;}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;padding:8px 16px;border-radius:999px;background:var(--ink);color:var(--panel);font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.18);}

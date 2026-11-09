@@ -106,6 +106,15 @@ export async function toggleStar(id) {
   catch (e) { r.starred = !r.starred; throw e; }
 }
 
+// A short message at the bottom of the screen ("Link copied").
+export const toast = ref('');
+let toastTimer = null;
+export function showToast(text) {
+  toast.value = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.value = ''; }, 2500);
+}
+
 // Share links. The link opens the public page, #/r/<token>.
 export const shareUrl = (token) => `${window.location.origin}${window.location.pathname}#/r/${token}`;
 export async function shareRecipe(id) {
