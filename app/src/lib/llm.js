@@ -109,8 +109,12 @@ export async function llmJson(endpoint, text, task) {
     if (body && body.error && body.error.code === 'json_validate_failed') r = await groqRequest(endpoint, text, 0.3, task);
   }
   if (!r.ok) {
-    const body = await r.clone().json().catch(() => null);
+    const raw = await r.clone().text().catch(() => '');
+    let body = null;
+    try { body = JSON.parse(raw); } catch (e) { /* plain-text error page */ }
     const code = body && body.error && body.error.code;
+    // The server's own reason (Groq's, or the gateway's), so a 500 can be told apart from another.
+    const reason = String((body && ((body.error && body.error.message) || body.message || body.msg)) || raw || '').trim().slice(0, 200);
     if (r.status === 429 && code === 'daily_limit') throw fail('DAILY_LIMIT', body.error.message);
     throw fail(r.status,
       r.status === 401 ? 'Your sign-in has expired. Reload the page and sign in again.' :
@@ -118,7 +122,7 @@ export async function llmJson(endpoint, text, task) {
       r.status === 429 ? 'The assistant is busy (free tier limit). Wait a minute and try again.' :
       r.status === 502 && code === 'limit_check_failed' ? body.error.message :
       r.status === 502 ? "The assistant's server key was rejected. Check GROQ_API_KEY in Supabase." :
-      r.status >= 500 ? `The assistant is having trouble right now (HTTP ${r.status}). Try again shortly.` :
+      r.status >= 500 ? `The assistant is having trouble right now (HTTP ${r.status}${reason ? `: ${reason}` : ''}). Try again shortly.` :
       `The assistant returned an error (HTTP ${r.status}).`);
   }
   let choice;

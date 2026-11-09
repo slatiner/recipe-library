@@ -82,6 +82,12 @@ describe('parseRecipe', () => {
     await expect(parseRecipe(endpoint, { title: '', text: 't' })).rejects.toMatchObject({ code: 'TOO_LONG' });
   });
 
+  it('a server error shows the server\'s own reason', async () => {
+    replies = [error(500, { message: 'Internal Server Error', type: 'internal_server_error' })];
+    await expect(parseRecipe(endpoint, { title: '', text: 't' })).rejects.toMatchObject({
+      code: 500, message: 'The assistant is having trouble right now (HTTP 500: Internal Server Error). Try again shortly.' });
+  });
+
   it('signed out: no endpoint', async () => {
     await expect(parseRecipe(null, { title: '', text: 't' })).rejects.toMatchObject({ code: 'NO_KEY', message: 'Sign in to use the assistant.' });
   });
