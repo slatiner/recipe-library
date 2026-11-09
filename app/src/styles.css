@@ -408,8 +408,8 @@ header.top .account-menu{align-self:center;}
 .close-btn:hover,.close-btn:focus-visible{color:var(--ink);background:var(--paper);outline:none;}
 .corner-actions{position:absolute;top:-10px;right:-10px;z-index:1;display:flex;gap:8px;}
 .corner-actions .close-btn{position:static;}
-.apply-btn{background:var(--ink);border-color:var(--ink);color:#fff;font-size:18px;}
-.apply-btn:hover,.apply-btn:focus-visible{background:var(--ink);color:#fff;opacity:.85;}
+.apply-btn{background:#2e8b47;border-color:#2e8b47;color:#fff;font-size:18px;}
+.apply-btn:hover,.apply-btn:focus-visible{background:#257339;border-color:#257339;color:#fff;}
 .apply-btn:disabled{opacity:.35;cursor:default;}
 .recipe-head{display:flex;align-items:flex-start;gap:10px;margin-top:0;}
 .recipe-head h2{flex:1;margin:0;font-size:24px;font-weight:600;}
