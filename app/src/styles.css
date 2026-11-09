@@ -374,8 +374,10 @@ header.top .account-menu{align-self:center;}
   .library-bar .list-toggle{order:-1;flex-basis:100%;margin-left:0;}
   .library-bar .list-toggle button{flex:1;}
 }
-.cooked-btn{border:0;background:none;font-size:16px;line-height:1;color:var(--ink-soft);cursor:pointer;padding:2px 4px;}
-.cooked-btn:hover{color:var(--ink);}
+/* ✓ Cooked it: a check on a grey circle, green on hover or focus. */
+.cooked-btn{flex:none;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:var(--line);color:var(--ink-soft);font-size:13px;font-weight:700;line-height:24px;text-align:center;cursor:pointer;transition:background .12s ease,color .12s ease;}
+.cooked-btn:hover,.cooked-btn:focus-visible{background:var(--series);color:#fff;}
+.cooked-btn:focus-visible{outline:2px solid var(--series);outline-offset:2px;}
 .cooked-on{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}
 .tag-row{display:flex;align-items:flex-start;gap:10px;margin:0 0 16px;}
 /* One line of chips (26px) until More opens the rest. */
