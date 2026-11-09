@@ -5,6 +5,18 @@ import { mount, flushPromises } from '@vue/test-utils';
 
 let state, App, adapter;
 let accessRequests = [];
+// Recipes the fake library starts with, and calls to fail: { save, star, delete } → message.
+let seed = [];
+let failures = {};
+
+function sampleRecipe(over = {}) {
+  return {
+    id: 'r1', title: 'Tomato soup', summary: 'A quick soup.', servings: 4, prepMinutes: 10, cookMinutes: 30,
+    ingredients: [{ group: null, amount: 200, unit: 'g', item: 'flour', note: null }], steps: [{ text: 'Cook.' }],
+    stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
+    sourceText: 'raw', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T10:00:00Z', ...over,
+  };
+}
 
 // connState is what init() reports: 'ok' (member), 'needsInvite' or 'signedOut'.
 function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
@@ -17,7 +29,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
     async init() {
       const signedIn = connState === 'ok' || connState === 'needsInvite';
       state.setConnection(connState, connState === 'ok' ? 'Connected' : 'Not connected', signedIn ? account : '', signedIn ? profile : null);
-      return connState === 'ok' ? [] : null;
+      return connState === 'ok' ? structuredClone(seed) : null;
     },
     async connect() { calls.push(['connect']); return null; },
     async reconnect() { state.setConnection('ok', 'Connected', account, profile); return []; },
@@ -40,6 +52,19 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
     },
     async deleteAccount() { calls.push(['deleteAccount']); state.setConnection('signedOut', 'Your account and its data have been deleted.'); },
     async llmEndpoint() { return null; },
+    async saveRecipe(recipe) {
+      calls.push(['saveRecipe', recipe.id || null]);
+      if (failures.save) throw new Error(failures.save);
+      return { ...structuredClone(recipe), id: recipe.id || `r-new-${calls.length}`, updatedAt: 'now', createdAt: recipe.createdAt || 'now' };
+    },
+    async deleteRecipe(id) {
+      calls.push(['deleteRecipe', id]);
+      if (failures.delete) throw new Error(failures.delete);
+    },
+    async setStarred(id, starred) {
+      calls.push(['setStarred', id, starred]);
+      if (failures.star) throw new Error(failures.star);
+    },
   };
 }
 
@@ -59,6 +84,9 @@ const menuLabels = (w) => w.findAll('.account-menu .popover button').map((b) => 
 beforeEach(() => {
   document.body.innerHTML = '';
   accessRequests = [];
+  seed = [];
+  failures = {};
+  window.location.hash = '';
   try { localStorage.clear(); } catch (e) { /* jsdom without storage */ }
 });
 
@@ -191,5 +219,49 @@ describe('your data', () => {
     await flushPromises();
     expect(adapter.calls.at(-1)).toEqual(['deleteAccount']);
     expect(w.text()).toContain('Sign in with Google');
+  });
+});
+
+describe('recipe state', () => {
+  it('saving a new recipe puts it first in the library', async () => {
+    seed = [sampleRecipe()];
+    await mountApp();
+    const { id, ...fresh } = sampleRecipe({ title: 'Bread' });
+    const saved = await state.saveRecipe(fresh);
+    expect(saved.id).toMatch(/^r-new/);
+    expect(state.recipes.value.map((r) => r.title)).toEqual(['Bread', 'Tomato soup']);
+  });
+
+  it('saving an existing recipe replaces it in place', async () => {
+    seed = [sampleRecipe(), sampleRecipe({ id: 'r2', title: 'Bread' })];
+    await mountApp();
+    await state.saveRecipe(sampleRecipe({ id: 'r2', title: 'Rye bread' }));
+    expect(state.recipes.value.map((r) => r.title)).toEqual(['Tomato soup', 'Rye bread']);
+  });
+
+  it('a failed save throws and leaves the library as it was', async () => {
+    seed = [sampleRecipe()];
+    await mountApp();
+    failures.save = 'Could not save the recipe: offline';
+    await expect(state.saveRecipe(sampleRecipe({ title: 'Changed' }))).rejects.toThrow('offline');
+    expect(state.recipes.value[0].title).toBe('Tomato soup');
+  });
+
+  it('deleting removes the recipe', async () => {
+    seed = [sampleRecipe()];
+    await mountApp();
+    await state.deleteRecipe('r1');
+    expect(state.recipes.value).toEqual([]);
+  });
+
+  it('toggling the star shows at once and is undone if the save fails', async () => {
+    seed = [sampleRecipe()];
+    await mountApp();
+    await state.toggleStar('r1');
+    expect(adapter.calls.at(-1)).toEqual(['setStarred', 'r1', true]);
+    expect(state.recipes.value[0].starred).toBe(true);
+    failures.star = 'Could not update the star: offline';
+    await expect(state.toggleStar('r1')).rejects.toThrow('offline');
+    expect(state.recipes.value[0].starred).toBe(true);
   });
 });

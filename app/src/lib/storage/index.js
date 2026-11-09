@@ -7,6 +7,10 @@
 // profile is { name, avatarUrl, isAdmin } from the sign-in provider and the
 // account's membership, or null.
 // It provides:
+// A recipe is { id, title, summary, servings, prepMinutes, cookMinutes,
+// ingredients: [{ group, amount, unit, item, note }], steps: [{ text }],
+// stepsOrigin, tags, notes, sourceKind, sourceUrl, sourceAuthor, sourceText,
+// starred, createdAt, updatedAt }; id and the dates are absent on a new one.
 //   init()                  restore a previous session; recipes[] or null
 //   connect()               user action to sign in; null (the page leaves)
 //   reconnect()             retry after an error; recipes[] or null
@@ -17,6 +21,9 @@
 //   listInvites()           (admins) recent invites
 //   listAccessRequests()    (admins) [{ userId, email, name, message, createdAt }]
 //   dismissAccessRequest(u) (admins)
+//   saveRecipe(recipe)      insert (no id) or update; the stored recipe
+//   deleteRecipe(id)
+//   setStarred(id, starred)
 //   exportAccount()         everything stored for the account, one object
 //   deleteAccount()         delete the account and its data, then sign out
 //   llmEndpoint()           { url, headers } of the Groq proxy for the

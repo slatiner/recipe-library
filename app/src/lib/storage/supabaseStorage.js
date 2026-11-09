@@ -4,6 +4,30 @@
 // anything.
 import { createClient } from '@supabase/supabase-js';
 
+// A recipe in the app is camelCase; the table is snake_case. The database sets
+// id, owner, share_token and the timestamps, so they are never sent.
+function fromRow(r) {
+  return {
+    id: r.id, title: r.title, summary: r.summary, servings: r.servings,
+    prepMinutes: r.prep_minutes, cookMinutes: r.cook_minutes,
+    ingredients: r.ingredients, steps: r.steps, stepsOrigin: r.steps_origin,
+    tags: r.tags, notes: r.notes,
+    sourceKind: r.source_kind, sourceUrl: r.source_url, sourceAuthor: r.source_author, sourceText: r.source_text,
+    starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+function toRow(r) {
+  return {
+    title: r.title, summary: r.summary, servings: r.servings,
+    prep_minutes: r.prepMinutes, cook_minutes: r.cookMinutes,
+    ingredients: r.ingredients, steps: r.steps, steps_origin: r.stepsOrigin,
+    tags: r.tags, notes: r.notes,
+    source_kind: r.sourceKind, source_url: r.sourceUrl, source_author: r.sourceAuthor, source_text: r.sourceText,
+    starred: r.starred,
+  };
+}
+
 export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
   const sb = client || createClient(url, key, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true } });
   let user = null;
@@ -13,9 +37,10 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
     throw new Error(`${what}: ${(error && error.message) || error}`);
   }
 
-  // The recipes table arrives in Phase 1; until then the library is empty.
   async function loadAll() {
-    return [];
+    const { data, error } = await sb.from('recipes').select('*').order('created_at', { ascending: false });
+    if (error) fail('Could not load your recipes', error);
+    return data.map(fromRow);
   }
 
   // Google's name and picture come with the default sign-in scopes.
@@ -72,7 +97,7 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
       setStatus('signedOut', 'Signed out.');
     },
 
-    // Redeem an invite code; on success loads the (empty) library. Throws the
+    // Redeem an invite code; on success loads the library. Throws the
     // database's message ("already used", "expired"...) on failure.
     async redeemInvite(code) {
       const { error } = await sb.rpc('redeem_invite', { p_code: code });
@@ -116,17 +141,40 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
       return data.map((r) => ({ code: r.code, createdAt: r.created_at, expiresAt: r.expires_at, usedAt: r.used_at }));
     },
 
+    // ---- Recipes ----
+
+    // Inserts a recipe without an id, otherwise updates it. Returns the stored card.
+    async saveRecipe(recipe) {
+      const q = recipe.id
+        ? sb.from('recipes').update(toRow(recipe)).eq('id', recipe.id)
+        : sb.from('recipes').insert(toRow(recipe));
+      const { data, error } = await q.select().single();
+      if (error) fail('Could not save the recipe', error);
+      return fromRow(data);
+    },
+
+    async deleteRecipe(id) {
+      const { error } = await sb.from('recipes').delete().eq('id', id);
+      if (error) fail('Could not delete the recipe', error);
+    },
+
+    async setStarred(id, starred) {
+      const { error } = await sb.from('recipes').update({ starred }).eq('id', id);
+      if (error) fail('Could not update the star', error);
+    },
+
     // ---- Your data ----
 
     // Everything stored for this account, as one object for a JSON download.
-    // Invites only those this account created.
+    // Invites only those this account created; recipes oldest first.
     async exportAccount() {
-      const [member, invites, request] = await Promise.all([
+      const [member, invites, request, recipes] = await Promise.all([
         sb.from('members').select('is_admin, joined_at').eq('user_id', user.id).maybeSingle(),
         sb.from('invites').select('code, created_at, expires_at, used_at').eq('created_by', user.id).order('created_at'),
         sb.from('access_requests').select('message, created_at').eq('user_id', user.id).limit(1),
+        sb.from('recipes').select('*').order('created_at'),
       ]);
-      const failed = [member, invites, request].find((r) => r.error);
+      const failed = [member, invites, request, recipes].find((r) => r.error);
       if (failed) fail('Could not export your data', failed.error);
       const m = user.user_metadata || {};
       return {
@@ -135,6 +183,7 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
         membership: member.data && { isAdmin: member.data.is_admin, joinedAt: member.data.joined_at },
         invitesCreated: invites.data.map((r) => ({ code: r.code, createdAt: r.created_at, expiresAt: r.expires_at, usedAt: r.used_at })),
         accessRequest: request.data[0] ? { message: request.data[0].message, createdAt: request.data[0].created_at } : null,
+        recipes: recipes.data.map((r) => { const { id, ...rest } = fromRow(r); return rest; }),
       };
     },
 

@@ -14,17 +14,24 @@ function fakeClient({ session = null, error = null, member = { is_admin: false, 
       get(target, prop) {
         if (prop === 'then') {
           log.push(q);
-          const data = q.table === 'members' ? db.member : (tables[q.table] ?? []);
-          return (resolve) => resolve({ data, error });
+          // .single() after an insert or update echoes the written row back, as the database would.
+          const written = q.calls.find((c) => c[0] === 'insert' || c[0] === 'update');
+          const data = q.table === 'members' ? db.member
+            : q.calls.some((c) => c[0] === 'single') ? { id: 'r-new', created_at: 'c', updated_at: 'u', ...(written && written[1]) }
+            : (tables[q.table] ?? []);
+          const err = client.failNext || error;
+          client.failNext = null;
+          return (resolve) => resolve({ data, error: err });
         }
         return (...args) => { q.calls.push([prop, ...args]); return chain; };
       },
     });
     return chain;
   };
-  return {
+  const client = {
     log,
     db,
+    failNext: null,
     from: builder,
     rpc: async (name, args) => { log.push({ rpc: name, args }); return rpc[name] || { data: null, error: null }; },
     auth: {
@@ -33,12 +40,28 @@ function fakeClient({ session = null, error = null, member = { is_admin: false, 
       signOut: async (opts) => { log.push({ signOut: opts || true }); return { error: null }; },
     },
   };
+  return client;
 }
 
 const session = {
   access_token: 'tok',
   user: { id: 'u1', email: 'me@example.com', created_at: '2026-11-01T00:00:00Z', user_metadata: { full_name: 'Ada Lovelace', avatar_url: 'https://pic' } },
 };
+
+const row = {
+  id: 'r1', owner: 'u1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prep_minutes: 10, cook_minutes: 30,
+  ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
+  steps_origin: 'source', tags: ['soup'], notes: null, source_kind: 'text', source_url: null, source_author: null,
+  source_text: 'raw', starred: false, share_token: null, created_at: '2026-11-09T10:00:00Z', updated_at: '2026-11-09T11:00:00Z',
+};
+const recipe = {
+  id: 'r1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prepMinutes: 10, cookMinutes: 30,
+  ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
+  stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
+  sourceText: 'raw', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
+};
+// What toRow sends: everything but id, owner, share_token and the timestamps.
+const { id: _i, owner: _o, share_token: _s, created_at: _c, updated_at: _u, ...toRowFields } = row;
 
 function adapterWith(clientOpts) {
   const status = [];
@@ -96,11 +119,13 @@ describe('Supabase adapter', () => {
     await expect(storage.redeemInvite('BAD')).rejects.toThrow(msg);
   });
 
-  it('exports the account, membership, invites created and access request', async () => {
-    const { storage } = adapterWith({ session, tables: { invites: [], access_requests: [] } });
+  it('exports the account, membership, invites created, access request and recipes', async () => {
+    const { storage } = adapterWith({ session, tables: { invites: [], access_requests: [], recipes: [row] } });
     await storage.init();
     const out = await storage.exportAccount();
-    expect(Object.keys(out)).toEqual(['exportedAt', 'account', 'membership', 'invitesCreated', 'accessRequest']);
+    expect(Object.keys(out)).toEqual(['exportedAt', 'account', 'membership', 'invitesCreated', 'accessRequest', 'recipes']);
+    expect(out.recipes[0].title).toBe('Tomato soup');
+    expect(out.recipes[0].id).toBeUndefined();
     expect(out.account).toEqual({ email: 'me@example.com', name: 'Ada Lovelace', avatarUrl: 'https://pic', createdAt: '2026-11-01T00:00:00Z' });
     expect(out.membership).toEqual({ isAdmin: false, joinedAt: '2026-11-09T00:00:00Z' });
     expect(out.accessRequest).toBe(null);
@@ -125,5 +150,55 @@ describe('Supabase adapter', () => {
   it('no assistant endpoint when signed out', async () => {
     const { storage } = adapterWith();
     expect(await storage.llmEndpoint()).toBe(null);
+  });
+
+  describe('recipes', () => {
+    const recipeQueries = (client) => client.log.filter((q) => q.table === 'recipes');
+
+    it('init loads the recipes newest first, in camelCase', async () => {
+      const { storage, client } = adapterWith({ session, tables: { recipes: [row] } });
+      expect(await storage.init()).toEqual([recipe]);
+      expect(recipeQueries(client)[0].calls).toContainEqual(['order', 'created_at', { ascending: false }]);
+    });
+
+    it('saving a new recipe inserts snake_case columns without an id and returns the stored card', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      const { id, createdAt, updatedAt, ...fresh } = recipe;
+      const saved = await storage.saveRecipe(fresh);
+      const insert = recipeQueries(client).at(-1).calls.find((c) => c[0] === 'insert')[1];
+      expect(insert).toEqual(toRowFields);
+      expect(saved).toEqual({ ...fresh, id: 'r-new', createdAt: 'c', updatedAt: 'u' });
+    });
+
+    it('saving an existing recipe updates it by id and never sends id, owner or timestamps', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      await storage.saveRecipe(recipe);
+      const q = recipeQueries(client).at(-1);
+      expect(q.calls.find((c) => c[0] === 'update')[1]).toEqual(toRowFields);
+      expect(q.calls).toContainEqual(['eq', 'id', 'r1']);
+    });
+
+    it('deletes by id', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      await storage.deleteRecipe('r1');
+      expect(recipeQueries(client).at(-1).calls).toEqual([['delete'], ['eq', 'id', 'r1']]);
+    });
+
+    it('stars by id', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      await storage.setStarred('r1', true);
+      expect(recipeQueries(client).at(-1).calls).toEqual([['update', { starred: true }], ['eq', 'id', 'r1']]);
+    });
+
+    it('a failed save throws with the reason', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      client.failNext = { message: 'offline' };
+      await expect(storage.saveRecipe(recipe)).rejects.toThrow('Could not save the recipe: offline');
+    });
   });
 });

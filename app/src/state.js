@@ -32,6 +32,27 @@ export const listInvites = () => storage.listInvites();
 export const listAccessRequests = () => storage.listAccessRequests();
 export const dismissAccessRequest = (userId) => storage.dismissAccessRequest(userId);
 
+// Recipes. Each throws the adapter's message, for the view to show.
+export async function saveRecipe(recipe) {
+  const saved = await storage.saveRecipe(recipe);
+  const i = recipes.value.findIndex((r) => r.id === saved.id);
+  if (i >= 0) recipes.value.splice(i, 1, saved);
+  else recipes.value.unshift(saved);
+  return saved;
+}
+export async function deleteRecipe(id) {
+  await storage.deleteRecipe(id);
+  recipes.value = recipes.value.filter((r) => r.id !== id);
+}
+// The star changes at once and goes back if the save fails.
+export async function toggleStar(id) {
+  const r = recipes.value.find((x) => x.id === id);
+  if (!r) return;
+  r.starred = !r.starred;
+  try { await storage.setStarred(id, r.starred); }
+  catch (e) { r.starred = !r.starred; throw e; }
+}
+
 // Your data.
 export const exportAccount = () => storage.exportAccount();
 export async function deleteAccount() {
