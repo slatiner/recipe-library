@@ -419,3 +419,6 @@ verify_jwt = false
 
 [functions.import-url]
 verify_jwt = false
+
+[functions.photo-search]
+verify_jwt = false
