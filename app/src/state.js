@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue';
 import { createSupabaseStorage } from './lib/storage/index.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+import * as llm from './lib/llm.js';
 
 export const recipes = ref([]);
 export const connection = reactive({ state: 'checking', text: 'Loading…', account: '', profile: null });
@@ -31,6 +32,12 @@ export const createInvite = () => storage.createInvite();
 export const listInvites = () => storage.listInvites();
 export const listAccessRequests = () => storage.listAccessRequests();
 export const dismissAccessRequest = (userId) => storage.dismissAccessRequest(userId);
+
+// Pasted text to an unsaved card: { recipe, needsTitle }. Throws a message to
+// show under the paste box.
+export async function parseRecipe({ title, text }) {
+  return llm.parseRecipe(await storage.llmEndpoint(), { title, text });
+}
 
 // Recipes. Each throws the adapter's message, for the view to show.
 export async function saveRecipe(recipe) {

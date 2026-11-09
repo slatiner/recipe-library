@@ -1,0 +1,58 @@
+// Recipe helpers shared by the views and the parser: the card's shape, the
+// metric units, amounts for display, and the library's search.
+
+// The only units stored (v1 is metric). 'pc' counts things: 2 eggs.
+export const UNITS = ['g', 'kg', 'ml', 'l', 'tsp', 'tbsp', 'pc'];
+
+// Longest paste sent to the LLM; a whole copied web page is longer.
+export const MAX_PASTE = 12000;
+
+export function emptyRecipe() {
+  return {
+    title: '', summary: null, servings: null, prepMinutes: null, cookMinutes: null,
+    ingredients: [], steps: [], stepsOrigin: 'source', tags: [], notes: null,
+    sourceKind: 'text', sourceUrl: null, sourceAuthor: null, sourceText: '', starred: false,
+  };
+}
+
+const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+
+// One ingredient as stored. A unit outside UNITS isn't stored; it goes into the
+// note ("1 cup") so the original measure isn't lost.
+export function normalizeIngredient(i) {
+  const n = Number(i.amount);
+  const amount = i.amount !== null && i.amount !== '' && Number.isFinite(n) ? n : null;
+  let unit = text(i.unit);
+  let note = text(i.note);
+  if (unit && !UNITS.includes(unit)) {
+    const was = [amount, unit].filter((x) => x !== null).join(' ');
+    note = note ? `${was}, ${note}` : was;
+    unit = null;
+  }
+  return { group: text(i.group), amount, unit, item: typeof i.item === 'string' ? i.item.trim() : '', note };
+}
+
+// "200 g", "0.33 tsp", "3" (counted), or "" when there's no amount.
+export function formatAmount(i) {
+  if (i.amount === null || i.amount === undefined) return '';
+  const n = String(Math.round(i.amount * 100) / 100);
+  return i.unit && i.unit !== 'pc' ? `${n} ${i.unit}` : n;
+}
+
+// Lower case without accents, so "creme" finds "Crème brûlée".
+const fold = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+export function filterRecipes(list, { query = '', tag = '', starredOnly = false } = {}) {
+  const q = fold(query.trim());
+  return list.filter((r) => {
+    if (starredOnly && !r.starred) return false;
+    if (tag && !r.tags.some((t) => fold(t) === fold(tag))) return false;
+    if (!q) return true;
+    const hay = [r.title, r.summary, ...r.ingredients.map((i) => i.item), ...r.tags].map(fold).join('\n');
+    return hay.includes(q);
+  });
+}
+
+export function allTags(list) {
+  return [...new Set(list.flatMap((r) => r.tags.map((t) => t.toLowerCase())))].sort();
+}
