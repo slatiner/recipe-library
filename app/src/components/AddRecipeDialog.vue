@@ -5,6 +5,7 @@
 import { ref, watch } from 'vue';
 import { parseRecipe, saveRecipe } from '../state.js';
 import { MAX_PASTE } from '../lib/recipes.js';
+import { go } from '../lib/route.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
 
@@ -46,7 +47,7 @@ async function save(recipe) {
   try {
     const saved = await saveRecipe(recipe);
     open.value = false;
-    window.location.hash = `#/recipe/${saved.id}`;
+    go(`#/recipe/${saved.id}`);
   } catch (e) { saveError.value = e.message; }
   finally { saving.value = false; }
 }

@@ -1,10 +1,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { recipes, connection, initStorage, connectStorage, reconnectStorage, signOut, redeemInvite, requestAccess } from './state.js';
+import { connection, initStorage, connectStorage, reconnectStorage, signOut, redeemInvite, requestAccess } from './state.js';
 import SettingsMenu from './components/SettingsMenu.vue';
 import InviteDialog from './components/InviteDialog.vue';
 import AccountDialog from './components/AccountDialog.vue';
 import AddRecipeDialog from './components/AddRecipeDialog.vue';
+import LibraryView from './components/LibraryView.vue';
+import RecipeView from './components/RecipeView.vue';
+import { route } from './lib/route.js';
 import GoogleButton from './components/GoogleButton.vue';
 import { useScrollChrome } from './lib/scrollChrome.js';
 
@@ -128,12 +131,10 @@ onMounted(initStorage);
       </form>
     </template>
 
-    <div v-if="showMain">
-      <div class="library-bar">
-        <button class="add-new-btn" @click="addOpen = true">Add recipe</button>
-      </div>
-      <div v-if="!recipes.length" class="empty">No recipes yet.</div>
-    </div>
+    <template v-if="showMain">
+      <RecipeView v-if="route.name === 'recipe'" :id="route.id" :key="route.id" />
+      <LibraryView v-else @add="addOpen = true" />
+    </template>
   </div>
 
   <InviteDialog v-model:open="inviteOpen" />

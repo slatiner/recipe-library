@@ -361,3 +361,124 @@ describe('adding a recipe', () => {
     expect(state.recipes.value[0].stepsOrigin).toBe('user');
   });
 });
+
+describe('the library', () => {
+  const three = () => [
+    sampleRecipe(),
+    sampleRecipe({ id: 'r2', title: 'Banana bread', tags: ['baking'], starred: true,
+      ingredients: [{ group: null, amount: 3, unit: 'pc', item: 'bananas', note: null }] }),
+    sampleRecipe({ id: 'r3', title: 'Pea soup', tags: ['soup', 'quick'] }),
+  ];
+  const tiles = (w) => w.findAll('.recipe-tile .tile-title').map((t) => t.text());
+
+  it('lists every recipe', async () => {
+    seed = three();
+    const w = await mountApp();
+    expect(tiles(w)).toEqual(['Tomato soup', 'Banana bread', 'Pea soup']);
+  });
+
+  it('search narrows the tiles, by title or ingredient', async () => {
+    seed = three();
+    const w = await mountApp();
+    await w.find('.library-bar input.search').setValue('banana');
+    expect(tiles(w)).toEqual(['Banana bread']);
+    await w.find('.library-bar input.search').setValue('nothing like this');
+    expect(w.text()).toContain('No recipes match.');
+    await w.findAll('button').find((b) => b.text() === 'Clear filters').trigger('click');
+    expect(tiles(w)).toHaveLength(3);
+  });
+
+  it('a tag chip filters, and clicking it again clears it', async () => {
+    seed = three();
+    const w = await mountApp();
+    const chip = () => w.findAll('.tag-chip').find((b) => b.text() === 'soup');
+    await chip().trigger('click');
+    expect(tiles(w)).toEqual(['Tomato soup', 'Pea soup']);
+    await chip().trigger('click');
+    expect(tiles(w)).toHaveLength(3);
+  });
+
+  it('Starred shows only starred recipes', async () => {
+    seed = three();
+    const w = await mountApp();
+    await w.find('.library-bar .starred-toggle').trigger('click');
+    expect(tiles(w)).toEqual(['Banana bread']);
+  });
+
+  it('the star on a tile saves, and a failed save puts it back with the message', async () => {
+    seed = three();
+    const w = await mountApp();
+    await w.findAll('.recipe-tile .star-btn')[0].trigger('click');
+    await flushPromises();
+    expect(adapter.calls.at(-1)).toEqual(['setStarred', 'r1', true]);
+    expect(w.findAll('.recipe-tile .star-btn')[0].attributes('aria-pressed')).toBe('true');
+    failures.star = 'Could not update the star: offline';
+    await w.findAll('.recipe-tile .star-btn')[0].trigger('click');
+    await flushPromises();
+    expect(w.findAll('.recipe-tile .star-btn')[0].attributes('aria-pressed')).toBe('true');
+    expect(w.find('.library-error').text()).toBe('Could not update the star: offline');
+  });
+});
+
+describe('a recipe page', () => {
+  async function openRecipe(id = 'r1') {
+    seed = [sampleRecipe({ ingredients: [
+      { group: null, amount: 200, unit: 'g', item: 'flour', note: '1.5 cups' },
+      { group: 'Sauce', amount: null, unit: null, item: 'salt', note: 'to taste' },
+    ], steps: [{ text: 'Mix.' }, { text: 'Bake.' }] })];
+    const w = await mountApp();
+    window.location.hash = `#/recipe/${id}`;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    return w;
+  }
+
+  it('clicking a tile opens the recipe page', async () => {
+    seed = [sampleRecipe()];
+    const w = await mountApp();
+    await w.find('.recipe-tile').trigger('click');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(window.location.hash).toBe('#/recipe/r1');
+    expect(w.find('.recipe-page h2').text()).toBe('Tomato soup');
+  });
+
+  it('shows ingredients under their sections, and numbered steps', async () => {
+    const w = await openRecipe();
+    const items = w.findAll('.recipe-page .ingredients li').map((li) => li.text().replace(/\s+/g, ' '));
+    expect(items).toEqual(['200 g flour 1.5 cups', 'salt to taste']);
+    expect(w.find('.recipe-page .ingredients').text()).toContain('Sauce');
+    expect(w.findAll('.recipe-page ol.steps li').map((li) => li.text())).toEqual(['Mix.', 'Bake.']);
+  });
+
+  it('edit and save updates the page and the library', async () => {
+    const w = await openRecipe();
+    await w.findAll('.recipe-page button').find((b) => b.text() === 'Edit').trigger('click');
+    await w.find('.recipe-editor input.title').setValue('Better soup');
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(w.find('.recipe-editor').exists()).toBe(false);
+    expect(w.find('.recipe-page h2').text()).toBe('Better soup');
+    expect(state.recipes.value[0].title).toBe('Better soup');
+  });
+
+  it('delete asks first, then goes back to the library without it', async () => {
+    const w = await openRecipe();
+    await w.findAll('.recipe-page button').find((b) => b.text() === 'Delete').trigger('click');
+    expect(w.find('.delete-confirm').text()).toContain("Delete Tomato soup? This can't be undone.");
+    await w.findAll('.delete-confirm button').find((b) => b.text() === 'Delete').trigger('click');
+    await flushPromises();
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(adapter.calls.at(-1)).toEqual(['deleteRecipe', 'r1']);
+    expect(window.location.hash).toBe('#/');
+    expect(state.recipes.value).toEqual([]);
+    expect(w.text()).toContain('No recipes yet.');
+  });
+
+  it('an unknown id says so, with a way back', async () => {
+    const w = await openRecipe('nope');
+    expect(w.text()).toContain('Recipe not found.');
+    expect(w.find('.recipe-missing a').attributes('href')).toBe('#/');
+  });
+});
