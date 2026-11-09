@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue';
 import { createSupabaseStorage } from './lib/storage/index.js';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 import * as llm from './lib/llm.js';
+import { importLink, linkOnly } from './lib/importer.js';
 
 export const recipes = ref([]);
 export const connection = reactive({ state: 'checking', text: 'Loading…', account: '', profile: null });
@@ -33,10 +34,31 @@ export const listInvites = () => storage.listInvites();
 export const listAccessRequests = () => storage.listAccessRequests();
 export const dismissAccessRequest = (userId) => storage.dismissAccessRequest(userId);
 
-// Pasted text to an unsaved card: { recipe, needsTitle }. Throws a message to
-// show under the paste box.
+// Pasted text, or a link to a recipe page or an Instagram post, to an unsaved
+// card: { recipe, needsTitle }. Throws a message to show under the paste box;
+// for a link it ends in "paste … instead".
 export async function parseRecipe({ title, text }) {
-  return llm.parseRecipe(await storage.llmEndpoint(), { title, text });
+  const link = linkOnly(text);
+  if (!link) return llm.parseRecipe(await storage.llmEndpoint(), { title, text });
+  const page = await importLink(await storage.importEndpoint(), link);
+  const out = await llm.parseRecipe(await storage.llmEndpoint(), { title, text: page.text });
+  Object.assign(out.recipe, {
+    sourceKind: page.kind, sourceUrl: page.url, sourceAuthor: page.author || null, imageUrl: page.imageUrl || null,
+  });
+  return out;
+}
+
+// Steps for a card without a method, from pasted steps or a link to the
+// recipe's page: [{ text }].
+export async function importSteps(text) {
+  const link = linkOnly(text);
+  const source = link ? (await importLink(await storage.importEndpoint(), link)).text : text;
+  return llm.parseSteps(await storage.llmEndpoint(), source);
+}
+
+// A suggested method (AI, labelled by the caller): [{ text }].
+export async function suggestMethod(recipe) {
+  return llm.suggestMethod(await storage.llmEndpoint(), recipe);
 }
 
 // Recipes. Each throws the adapter's message, for the view to show.

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { parseRecipe } from './llm.js';
+import { parseRecipe, parseSteps, suggestMethod } from './llm.js';
 
 const endpoint = { url: 'https://proxy/groq', headers: { Authorization: 'Bearer t' } };
 const card = (o = {}) => ({
@@ -90,5 +90,38 @@ describe('parseRecipe', () => {
 
   it('signed out: no endpoint', async () => {
     await expect(parseRecipe(null, { title: '', text: 't' })).rejects.toMatchObject({ code: 'NO_KEY', message: 'Sign in to use the assistant.' });
+  });
+});
+
+describe('steps', () => {
+  const steps = (list) => answer({ steps: list });
+
+  it('parseSteps returns the method from text, with the small model', async () => {
+    replies = [steps([' Boil. ', '', 'Serve.'])];
+    expect(await parseSteps(endpoint, 'Boil, then serve.')).toEqual([{ text: 'Boil.' }, { text: 'Serve.' }]);
+    expect(requests[0].model).toBe('openai/gpt-oss-20b');
+    expect(requests[0].response_format.json_schema.name).toBe('recipe_steps');
+    expect(requests[0].messages[1].content).toBe('Boil, then serve.');
+  });
+
+  it('parseSteps with nothing found says so', async () => {
+    replies = [steps([])];
+    await expect(parseSteps(endpoint, 'hello')).rejects.toMatchObject({ code: 'NO_STEPS' });
+  });
+
+  it('suggestMethod sends the title, ingredients and notes to the large model', async () => {
+    replies = [steps(['Roast the squash at 200°C for 45 minutes.'])];
+    const recipe = {
+      title: 'Squash gnudi', servings: 4, notes: 'Drain the ricotta well.',
+      ingredients: [
+        { group: 'Gnudi', amount: 245, unit: 'g', item: 'ricotta', note: '1 cup' },
+        { group: null, amount: 1, unit: 'pc', item: 'egg', note: null },
+        { group: null, amount: null, unit: null, item: 'salt', note: 'a pinch' },
+      ],
+    };
+    expect(await suggestMethod(endpoint, recipe)).toEqual([{ text: 'Roast the squash at 200°C for 45 minutes.' }]);
+    expect(requests[0].model).toBe('openai/gpt-oss-120b');
+    expect(requests[0].messages[1].content).toBe(
+      'Title: Squash gnudi\nServes: 4\nIngredients:\n- 245 g ricotta (1 cup) [Gnudi]\n- 1 egg\n- salt (a pinch)\nNotes: Drain the ricotta well.');
   });
 });

@@ -11,7 +11,7 @@ export function emptyRecipe() {
   return {
     title: '', summary: null, servings: null, prepMinutes: null, cookMinutes: null,
     ingredients: [], steps: [], stepsOrigin: 'source', tags: [], notes: null,
-    sourceKind: 'text', sourceUrl: null, sourceAuthor: null, sourceText: '', starred: false,
+    sourceKind: 'text', sourceUrl: null, sourceAuthor: null, sourceText: '', imageUrl: null, starred: false,
   };
 }
 

@@ -1,11 +1,12 @@
 <script setup>
-// Add a recipe: an optional title and the pasted text go to the assistant,
-// which makes the card; the user edits it and saves. Errors, and closing the
+// Add a recipe: an optional title and the pasted text (or a link, which
+// import-url reads first) go to the assistant, which makes the card; the user edits it and saves. Errors, and closing the
 // sheet before saving, keep what was typed, so nothing has to be pasted twice.
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { parseRecipe, saveRecipe } from '../state.js';
 import { MAX_PASTE } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
+import { linkOnly } from '../lib/importer.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
 
@@ -17,6 +18,7 @@ const reading = ref(false);
 const error = ref('');
 const saving = ref(false);
 const saveError = ref('');
+const isLink = computed(() => !!linkOnly(text.value));
 
 watch(open, (isOpen) => {
   if (!isOpen) return;
@@ -63,13 +65,13 @@ async function save(recipe) {
           <input v-model="title" class="add-title" maxlength="200">
         </div>
         <div class="field">
-          <label>Paste the recipe</label>
-          <textarea v-model="text" class="paste" rows="14" placeholder="Ingredients and method, from a website, a post or your notes"></textarea>
+          <label>Paste the recipe or a link</label>
+          <textarea v-model="text" class="paste" rows="14" placeholder="Ingredients and method from anywhere, or a link to a recipe page or an Instagram post"></textarea>
         </div>
         <p v-if="error" class="add-error redeem-error">{{ error }}</p>
         <div class="form-actions">
           <button type="button" class="btn ghost" @click="open = false">Cancel</button>
-          <button type="submit" class="btn" :disabled="reading || !text.trim()">{{ reading ? 'Reading…' : 'Make the card' }}</button>
+          <button type="submit" class="btn" :disabled="reading || !text.trim()">{{ reading ? (isLink ? 'Reading the link…' : 'Reading…') : 'Make the card' }}</button>
         </div>
       </form>
       <RecipeEditor v-else :model-value="card" :saving="saving" :error="saveError" cancel-label="Back"

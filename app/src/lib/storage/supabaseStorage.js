@@ -13,7 +13,7 @@ function fromRow(r) {
     ingredients: r.ingredients, steps: r.steps, stepsOrigin: r.steps_origin,
     tags: r.tags, notes: r.notes,
     sourceKind: r.source_kind, sourceUrl: r.source_url, sourceAuthor: r.source_author, sourceText: r.source_text,
-    starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+    imageUrl: r.image_url ?? null, starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
 
@@ -24,7 +24,7 @@ function toRow(r) {
     ingredients: r.ingredients, steps: r.steps, steps_origin: r.stepsOrigin,
     tags: r.tags, notes: r.notes,
     source_kind: r.sourceKind, source_url: r.sourceUrl, source_author: r.sourceAuthor, source_text: r.sourceText,
-    starred: r.starred,
+    image_url: r.imageUrl ?? null, starred: r.starred,
   };
 }
 
@@ -35,6 +35,14 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
 
   function fail(what, error) {
     throw new Error(`${what}: ${(error && error.message) || error}`);
+  }
+
+  // { url, headers } of one of the project's edge functions, or null when signed out.
+  async function functionEndpoint(name) {
+    const { data } = await sb.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    if (!token) return null;
+    return { url: `${url}/functions/v1/${name}`, headers: { Authorization: `Bearer ${token}`, apikey: key } };
   }
 
   async function loadAll() {
@@ -198,13 +206,10 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
       setStatus('signedOut', 'Your account and its data have been deleted.');
     },
 
-    // The assistant's Groq proxy (supabase/functions/groq), called with the
-    // signed-in user's token. null when signed out.
-    async llmEndpoint() {
-      const { data } = await sb.auth.getSession();
-      const token = data && data.session && data.session.access_token;
-      if (!token) return null;
-      return { url: `${url}/functions/v1/groq`, headers: { Authorization: `Bearer ${token}`, apikey: key } };
-    },
+    // The assistant's Groq proxy (supabase/functions/groq) and the link
+    // importer (supabase/functions/import-url), called with the signed-in
+    // user's token. null when signed out.
+    llmEndpoint: () => functionEndpoint('groq'),
+    importEndpoint: () => functionEndpoint('import-url'),
   };
 }

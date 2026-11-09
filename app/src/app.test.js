@@ -54,6 +54,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
     },
     async deleteAccount() { calls.push(['deleteAccount']); state.setConnection('signedOut', 'Your account and its data have been deleted.'); },
     async llmEndpoint() { return endpoint; },
+    async importEndpoint() { return endpoint && { url: 'https://fn/import-url', headers: {} }; },
     async saveRecipe(recipe) {
       calls.push(['saveRecipe', recipe.id || null]);
       if (failures.save) throw new Error(failures.save);
@@ -383,6 +384,125 @@ describe('adding a recipe', () => {
   });
 });
 
+// Canned answers by address: the importer's page (or an error), then the
+// assistant's JSON answers in order. Records what each was sent.
+function backend({ page = null, pageError = null, answers = [] } = {}) {
+  const sent = [];
+  const queue = [...answers];
+  globalThis.fetch = vi.fn(async (url, init) => {
+    const body = JSON.parse(init.body);
+    sent.push({ url, body });
+    if (url.endsWith('/import-url')) {
+      return pageError ? new Response(JSON.stringify({ error: pageError }), { status: 422 }) : new Response(JSON.stringify(page), { status: 200 });
+    }
+    return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(queue.shift()) } }] }), { status: 200 });
+  });
+  endpoint = { url: 'https://proxy/groq', headers: {} };
+  return sent;
+}
+const parsed = (o = {}) => ({
+  isRecipe: true, title: 'Squash Gnudi', summary: null, servings: 4, prepMinutes: null, cookMinutes: null,
+  ingredients: [{ group: null, amount: 245, unit: 'g', item: 'ricotta', note: '1 cup' }], steps: [], tags: ['italian'], notes: null, ...o,
+});
+const igPage = {
+  kind: 'instagram', url: 'https://www.instagram.com/reel/ABC/', title: null, author: '@cook', imageUrl: null,
+  text: 'Squash gnudi\n1 cup ricotta\nFull recipe: https://cook.example/gnudi',
+};
+const saveButton = (w) => w.findAll('.recipe-editor button').find((b) => b.text() === 'Save');
+
+describe('importing a link', () => {
+  it('a lone link is read by the importer, then parsed; the card keeps where it came from', async () => {
+    const sent = backend({ page: { ...igPage, kind: 'web', url: 'https://cook.example/gnudi', author: 'Cook', imageUrl: 'https://cook.example/g.jpg' }, answers: [parsed({ steps: ['Mix.'] })] });
+    const w = await mountApp();
+    await openAdd(w, { text: ' https://cook.example/gnudi ' });
+    expect(sent[0]).toEqual({ url: 'https://fn/import-url', body: { url: 'https://cook.example/gnudi' } });
+    expect(sent[1].body.messages[1].content).toBe(igPage.text);
+    expect(w.find('.recipe-editor input.title').element.value).toBe('Squash Gnudi');
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    const saved = state.recipes.value[0];
+    expect(saved).toMatchObject({ sourceKind: 'web', sourceUrl: 'https://cook.example/gnudi', sourceAuthor: 'Cook', imageUrl: 'https://cook.example/g.jpg', sourceText: igPage.text });
+  });
+
+  it('text with a link inside is pasted text, not an import', async () => {
+    const sent = backend({ answers: [parsed({ steps: ['Mix.'] })] });
+    const w = await mountApp();
+    await openAdd(w, { text: 'Gnudi from https://cook.example/gnudi' });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].url).toBe('https://proxy/groq');
+  });
+
+  it('a post that cannot be read: the reason and the paste fallback, the link stays', async () => {
+    backend({ pageError: { code: 'no_caption', message: 'The page had no caption.' } });
+    const w = await mountApp();
+    await openAdd(w, { text: 'https://www.instagram.com/reel/ABC/' });
+    expect(w.find('.add-recipe .add-error').text()).toBe("Couldn't read that post (the page had no caption). Paste the caption instead.");
+    expect(w.find('.add-recipe textarea.paste').element.value).toBe('https://www.instagram.com/reel/ABC/');
+  });
+});
+
+describe('steps missing', () => {
+  it('the preview flags it; Suggest a method fills the steps with the AI badge and saves them as ai_suggested', async () => {
+    const sent = backend({ page: igPage, answers: [parsed(), { steps: ['Roast the squash.', 'Shape and boil.'] }] });
+    const w = await mountApp();
+    await openAdd(w, { text: 'https://www.instagram.com/reel/ABC/' });
+    expect(w.find('.missing-steps').text()).toContain('Steps missing.');
+    expect(w.find('.recipe-editor .ai-badge').exists()).toBe(false);
+    await w.find('.missing-steps button.suggest').trigger('click');
+    await flushPromises();
+    expect(sent[2].body.model).toBe('openai/gpt-oss-120b');
+    expect(w.find('.recipe-editor textarea.steps').element.value).toBe('Roast the squash.\nShape and boil.');
+    expect(w.find('.missing-steps').exists()).toBe(false);
+    expect(w.find('.recipe-editor .ai-badge').text()).toBe("AI suggested, may differ from the creator's");
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0]).toMatchObject({ stepsOrigin: 'ai_suggested', sourceKind: 'instagram', sourceAuthor: '@cook', imageUrl: null });
+  });
+
+  it('a link in the caption offers to get the method from that site', async () => {
+    const sent = backend({ page: igPage, answers: [parsed(), { steps: ['Boil.'] }] });
+    const w = await mountApp();
+    await openAdd(w, { text: 'https://www.instagram.com/reel/ABC/' });
+    // The second import (the site) answers with the same canned page.
+    const btn = w.find('.missing-steps button.from-link');
+    expect(btn.text()).toBe('Get the method from cook.example');
+    await btn.trigger('click');
+    await flushPromises();
+    expect(sent[2]).toEqual({ url: 'https://fn/import-url', body: { url: 'https://cook.example/gnudi' } });
+    expect(sent[3].body.response_format.json_schema.name).toBe('recipe_steps');
+    expect(w.find('.recipe-editor textarea.steps').element.value).toBe('Boil.');
+  });
+
+  it('on a saved card: pasted steps are saved at once as the source\'s', async () => {
+    seed = [sampleRecipe({ steps: [] })];
+    const sent = backend({ answers: [{ steps: ['Boil.', 'Serve.'] }] });
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    await w.find('.missing-steps button.paste-open').trigger('click');
+    await w.find('.missing-steps textarea.steps-paste').setValue('Boil it, then serve.');
+    await w.find('.missing-steps button.add-steps').trigger('click');
+    await flushPromises();
+    expect(sent[0].body.messages[1].content).toBe('Boil it, then serve.');
+    expect(adapter.calls).toContainEqual(['saveRecipe', 'r1']);
+    expect(w.findAll('.recipe-page .steps li').map((li) => li.text())).toEqual(['Boil.', 'Serve.']);
+    expect(w.find('.recipe-page .ai-badge').exists()).toBe(false);
+  });
+
+  it('a failure shows its message and keeps the panel', async () => {
+    seed = [sampleRecipe({ steps: [] })];
+    backend({ answers: [{ steps: [] }] });
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    await w.find('.missing-steps button.suggest').trigger('click');
+    await flushPromises();
+    expect(w.find('.missing-steps .missing-error').text()).toBe("The assistant couldn't suggest a method. Try again.");
+  });
+});
+
 describe('the library', () => {
   const three = () => [
     sampleRecipe(),
@@ -506,6 +626,30 @@ describe('a recipe page', () => {
       await flushPromises();
       expect(w.find('.recipe-source a').exists() ? w.find('.recipe-source a').attributes('href') : undefined).toBe(href);
     }
+  });
+
+  it('the source photo shows with a credit; a non-http one is not shown', async () => {
+    seed = [sampleRecipe({ imageUrl: 'https://cook.example/g.jpg', sourceUrl: 'https://www.cook.example/gnudi' }), sampleRecipe({ id: 'r2', imageUrl: 'javascript:x' })];
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(w.find('.recipe-photo img').attributes('src')).toBe('https://cook.example/g.jpg');
+    expect(w.find('.recipe-photo img').attributes('referrerpolicy')).toBe('no-referrer');
+    expect(w.find('.recipe-photo figcaption').text()).toBe('Photo: cook.example');
+    window.location.hash = '#/recipe/r2';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(w.find('.recipe-photo').exists()).toBe(false);
+  });
+
+  it('an AI-suggested method carries the badge', async () => {
+    seed = [sampleRecipe({ stepsOrigin: 'ai_suggested' })];
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(w.find('.recipe-page .ai-badge').text()).toBe("AI suggested, may differ from the creator's");
   });
 
   it('an unknown id says so, with a way back', async () => {

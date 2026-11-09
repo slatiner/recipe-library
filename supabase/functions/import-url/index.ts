@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     const html = await fetchPage(link.fetchUrl, ctrl.signal);
     if (link.kind === 'instagram') {
       const c = instagramCaption(html);
-      if (!c) return error(422, 'no_caption', "Couldn't read that post.");
+      if (!c) return error(422, 'no_caption', 'The page had no caption.');
       // The embed's image is a signed link that expires, so none is returned.
       return reply(200, { kind: 'instagram', url: link.url, text: c.text, title: null, author: c.author, imageUrl: null });
     }

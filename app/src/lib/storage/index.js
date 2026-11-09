@@ -10,7 +10,7 @@
 // A recipe is { id, title, summary, servings, prepMinutes, cookMinutes,
 // ingredients: [{ group, amount, unit, item, note }], steps: [{ text }],
 // stepsOrigin, tags, notes, sourceKind, sourceUrl, sourceAuthor, sourceText,
-// starred, createdAt, updatedAt }; id and the dates are absent on a new one.
+// imageUrl, starred, createdAt, updatedAt }; id and the dates are absent on a new one.
 //   init()                  restore a previous session; recipes[] or null
 //   connect()               user action to sign in; null (the page leaves)
 //   reconnect()             retry after an error; recipes[] or null
@@ -28,4 +28,5 @@
 //   deleteAccount()         delete the account and its data, then sign out
 //   llmEndpoint()           { url, headers } of the Groq proxy for the
 //                           signed-in user, or null
+//   importEndpoint()        { url, headers } of the link importer, or null
 export { createSupabaseStorage } from './supabaseStorage.js';

@@ -3,6 +3,7 @@
 // Works on its own copy; Save emits the cleaned card, Cancel drops the edits.
 import { computed, reactive, ref } from 'vue';
 import { UNITS, normalizeIngredient } from '../lib/recipes.js';
+import MissingSteps from './MissingSteps.vue';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -26,6 +27,11 @@ function removeRow(i) { rows.value.splice(i, 1); }
 function editSteps(e) {
   stepsText.value = e.target.value;
   draft.stepsOrigin = 'user';
+}
+// From Steps missing: suggested (ai_suggested) or the source's.
+function setSteps(steps, origin) {
+  stepsText.value = steps.map((s) => s.text).join('\n');
+  draft.stepsOrigin = origin;
 }
 
 const minutes = (v) => { const n = parseInt(v, 10); return n > 0 ? n : null; };
@@ -83,8 +89,10 @@ function save() {
       <button type="button" class="btn ghost small" @click="addRow">Add ingredient</button>
     </div>
 
+    <MissingSteps v-if="!stepsText.trim()" :recipe="draft" @steps="setSteps" />
     <div class="field">
       <label>Method, one step per line</label>
+      <p v-if="draft.stepsOrigin === 'ai_suggested'" class="ai-badge">AI suggested, may differ from the creator's</p>
       <textarea class="steps" rows="8" :value="stepsText" @input="editSteps"></textarea>
     </div>
     <div class="field">

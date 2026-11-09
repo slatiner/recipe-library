@@ -51,14 +51,14 @@ const session = {
 const row = {
   id: 'r1', owner: 'u1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prep_minutes: 10, cook_minutes: 30,
   ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
-  steps_origin: 'source', tags: ['soup'], notes: null, source_kind: 'text', source_url: null, source_author: null,
+  steps_origin: 'source', tags: ['soup'], notes: null, source_kind: 'text', source_url: null, source_author: null, image_url: 'https://example.com/a.jpg',
   source_text: 'raw', starred: false, share_token: null, created_at: '2026-11-09T10:00:00Z', updated_at: '2026-11-09T11:00:00Z',
 };
 const recipe = {
   id: 'r1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prepMinutes: 10, cookMinutes: 30,
   ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
   stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
-  sourceText: 'raw', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
+  sourceText: 'raw', imageUrl: 'https://example.com/a.jpg', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
 };
 // What toRow sends: everything but id, owner, share_token and the timestamps.
 const { id: _i, owner: _o, share_token: _s, created_at: _c, updated_at: _u, ...toRowFields } = row;
@@ -150,6 +150,14 @@ describe('Supabase adapter', () => {
   it('no assistant endpoint when signed out', async () => {
     const { storage } = adapterWith();
     expect(await storage.llmEndpoint()).toBe(null);
+  });
+
+  it('the link importer is the import-url function with the user token; none when signed out', async () => {
+    expect(await adapterWith({ session }).storage.importEndpoint()).toEqual({
+      url: 'https://ref.supabase.co/functions/v1/import-url',
+      headers: { Authorization: 'Bearer tok', apikey: 'pk' },
+    });
+    expect(await adapterWith().storage.importEndpoint()).toBe(null);
   });
 
   describe('recipes', () => {

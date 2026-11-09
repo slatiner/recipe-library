@@ -7,6 +7,8 @@ import { formatAmount } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
+import MissingSteps from './MissingSteps.vue';
+import { hostOf } from '../lib/importer.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const recipe = computed(() => recipes.value.find((r) => r.id === props.id) || null);
@@ -29,6 +31,10 @@ const times = computed(() => {
 // Only web addresses become links; anything else (javascript:...) is shown as text.
 const sourceLink = computed(() => (/^https?:\/\//i.test(recipe.value.sourceUrl || '') ? recipe.value.sourceUrl : null));
 
+// The source site's photo, linked rather than copied; hidden if it stops loading.
+const imageLink = computed(() => (/^https?:\/\//i.test(recipe.value.imageUrl || '') ? recipe.value.imageUrl : null));
+const imageFailed = ref(false);
+
 const editing = ref(false);
 const saving = ref(false);
 const error = ref('');
@@ -42,6 +48,11 @@ async function save(updated) {
     editing.value = false;
   } catch (e) { error.value = e.message; }
   finally { saving.value = false; }
+}
+
+// Steps from Steps missing are saved straight away.
+async function addSteps(steps, origin) {
+  await save({ ...JSON.parse(JSON.stringify(recipe.value)), steps, stepsOrigin: origin });
 }
 
 async function star() {
@@ -68,6 +79,10 @@ async function remove() {
     <RecipeEditor v-if="editing" :model-value="recipe" :saving="saving" :error="error"
       @save="save" @cancel="editing = false; error = ''" />
     <template v-else>
+      <figure v-if="imageLink && !imageFailed" class="recipe-photo">
+        <img :src="imageLink" :alt="recipe.title" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed = true">
+        <figcaption>Photo: <a v-if="sourceLink" :href="sourceLink" target="_blank" rel="noopener noreferrer">{{ hostOf(sourceLink) }}</a><span v-else>{{ hostOf(imageLink) }}</span></figcaption>
+      </figure>
       <div class="recipe-head">
         <h2>{{ recipe.title }}</h2>
         <button class="star-btn" :aria-pressed="String(!!recipe.starred)" :aria-label="recipe.starred ? 'Unstar' : 'Star'"
@@ -96,10 +111,11 @@ async function remove() {
 
       <section class="method">
         <h3>Method</h3>
+        <p v-if="recipe.steps.length && recipe.stepsOrigin === 'ai_suggested'" class="ai-badge">AI suggested, may differ from the creator's</p>
         <ol v-if="recipe.steps.length" class="steps">
           <li v-for="(s, n) in recipe.steps" :key="n">{{ s.text }}</li>
         </ol>
-        <p v-else class="steps-missing">No method yet. Use Edit to add the steps.</p>
+        <MissingSteps v-else :recipe="recipe" @steps="addSteps" />
       </section>
 
       <section v-if="recipe.notes" class="notes">

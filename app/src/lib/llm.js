@@ -4,6 +4,9 @@
 import { UNITS, emptyRecipe, normalizeIngredient } from './recipes.js';
 
 const GROQ_MODEL = 'openai/gpt-oss-20b';
+// Writing a method from scratch (Suggest a method) needs the larger model; it
+// has the same free-tier limits on Groq (ROADMAP.md, Decisions).
+const LARGE_MODEL = 'openai/gpt-oss-120b';
 // Same cap as the proxy (supabase/functions/groq/body.js); a long recipe plus
 // the reasoning needs more than the 1,500 Content_Project uses.
 const MAX_TOKENS = 4000;
@@ -62,8 +65,44 @@ Rules:
 - notes: tips, variations or storage advice from the text. null if there are none.`;
 }
 
-// A task is { name, schema, prompt() }.
+// A task is { name, schema, prompt(), model? }.
 export const RECIPE_TASK = { name: 'recipe_card', schema: RECIPE_SCHEMA, prompt: buildRecipePrompt };
+
+const STEPS_SCHEMA = {
+  type: 'object',
+  properties: { steps: { type: 'array', items: { type: 'string' } } },
+  required: ['steps'],
+  additionalProperties: false,
+};
+
+const STEP_RULES = `- One step per instruction or small group of instructions, in order, without numbering.
+- Metric only: convert Fahrenheit to Celsius (350°F -> 180°C), inches to cm, and imperial amounts mentioned in the text to metric.`;
+
+// The method of a recipe from text the user pasted or a page they linked.
+export const STEPS_TASK = {
+  name: 'recipe_steps',
+  schema: STEPS_SCHEMA,
+  prompt: () => `You extract the method (the cooking steps) of one recipe from text: steps the user pasted, or the text of a recipe web page. Reply with JSON only.
+
+Rules:
+- steps: only the method, never the ingredient list, stories, adverts or comments.
+${STEP_RULES}
+- Never invent steps. If the text has no method, steps is an empty array.`,
+};
+
+// A plausible method for a card that has none (the creator kept theirs off the post).
+export const METHOD_TASK = {
+  name: 'suggested_method',
+  schema: STEPS_SCHEMA,
+  model: LARGE_MODEL,
+  prompt: () => `You write a home-cooking method for a recipe whose creator didn't publish the steps. You get its title, ingredients and notes. Reply with JSON only.
+
+Rules:
+- steps: a clear method a home cook can follow, using every ingredient listed and nothing else except water, salt and pepper.
+${STEP_RULES}
+- Give oven temperatures in °C and times in minutes, typical for this kind of dish.
+- Follow anything the notes say about the method.`,
+};
 
 function fail(code, message) {
   const err = new Error(message);
@@ -84,7 +123,7 @@ async function groqRequest(endpoint, text, temperature, task) {
       signal: ctrl.signal,
       headers: { 'Content-Type': 'application/json', ...endpoint.headers },
       body: JSON.stringify({
-        model: GROQ_MODEL,
+        model: task.model || GROQ_MODEL,
         messages: [{ role: 'system', content: task.prompt() }, { role: 'user', content: text }],
         temperature,
         reasoning_effort: 'medium',
@@ -159,10 +198,35 @@ export async function parseRecipe(endpoint, { title = '', text }) {
     prepMinutes: int(r.prepMinutes),
     cookMinutes: int(r.cookMinutes),
     ingredients: (r.ingredients || []).map(normalizeIngredient).filter((i) => i.item),
-    steps: (r.steps || []).map(str).filter(Boolean).map((t) => ({ text: t })),
+    steps: stepList(r),
     tags: [...new Set((r.tags || []).map((t) => str(t)).filter(Boolean).map((t) => t.toLowerCase()))],
     notes: str(r.notes),
     sourceText: text,
   };
   return { recipe, needsTitle: !recipe.title };
+}
+
+const stepList = (r) => (r.steps || []).map(str).filter(Boolean).map((t) => ({ text: t }));
+
+// Steps from pasted text or a fetched page: [{ text }]. Throws code NO_STEPS
+// when there are none.
+export async function parseSteps(endpoint, text) {
+  const steps = stepList(await llmJson(endpoint, text, STEPS_TASK));
+  if (!steps.length) throw fail('NO_STEPS', "Couldn't find any steps in that. Paste the method itself.");
+  return steps;
+}
+
+// A suggested method for a card without one: [{ text }]. Only on request; the
+// caller marks it ai_suggested.
+export async function suggestMethod(endpoint, recipe) {
+  const lines = [
+    `Title: ${recipe.title || 'untitled'}`,
+    recipe.servings && `Serves: ${recipe.servings}`,
+    'Ingredients:',
+    ...recipe.ingredients.map((i) => `- ${[i.amount, i.unit && i.unit !== 'pc' ? i.unit : null, i.item, i.note && `(${i.note})`].filter((x) => x !== null && x !== undefined && x !== '').join(' ')}${i.group ? ` [${i.group}]` : ''}`),
+    recipe.notes && `Notes: ${recipe.notes}`,
+  ].filter(Boolean);
+  const steps = stepList(await llmJson(endpoint, lines.join('\n'), METHOD_TASK));
+  if (!steps.length) throw fail('NO_STEPS', "The assistant couldn't suggest a method. Try again.");
+  return steps;
 }

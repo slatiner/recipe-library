@@ -401,7 +401,17 @@ header.top .account-menu{align-self:center;}
 .ing-note{color:var(--ink-soft);font-size:12.5px;margin-left:4px;}
 .steps{padding-left:22px;margin:0;}
 .steps li{margin-bottom:10px;line-height:1.55;font-size:14.5px;}
-.steps-missing{color:var(--ink-soft);font-size:13px;}
+.missing-steps{border:1px dashed var(--line);border-radius:var(--radius);padding:12px 14px;margin:0 0 14px;background:var(--panel);}
+.missing-title{margin:0 0 10px;font-size:14px;}
+.missing-actions{display:flex;flex-wrap:wrap;gap:8px;}
+.missing-steps .field-hint{margin:8px 0 0;}
+.missing-steps .field{margin-top:10px;}
+.missing-steps .add-steps{margin-top:6px;}
+.ai-badge{display:inline-block;margin:0 0 8px;padding:2px 8px;border-radius:999px;border:1px solid var(--warn);color:var(--warn);font-size:12px;}
+.recipe-photo{margin:0 0 14px;}
+.recipe-photo img{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:var(--radius-lg);background:var(--panel);}
+.recipe-photo figcaption{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+.recipe-photo figcaption a{color:inherit;}
 .notes p{white-space:pre-line;font-size:14px;margin:0;}
 .recipe-source{font-size:12.5px;color:var(--ink-soft);margin-top:18px;}
 .recipe-page .tile-meta{margin-top:18px;}
