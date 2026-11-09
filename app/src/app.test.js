@@ -16,7 +16,7 @@ function sampleRecipe(over = {}) {
     id: 'r1', title: 'Tomato soup', summary: 'A quick soup.', servings: 4, prepMinutes: 10, cookMinutes: 30,
     ingredients: [{ group: null, amount: 200, unit: 'g', item: 'flour', note: null }], steps: [{ text: 'Cook.' }],
     stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
-    sourceText: 'raw', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T10:00:00Z', ...over,
+    sourceText: 'raw', status: 'wishlist', cookedOn: null, starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T10:00:00Z', ...over,
   };
 }
 
@@ -28,6 +28,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
   return {
     kind: 'supabase',
     calls,
+    saved: [],
     async init() {
       const signedIn = connState === 'ok' || connState === 'needsInvite';
       state.setConnection(connState, connState === 'ok' ? 'Connected' : 'Not connected', signedIn ? account : '', signedIn ? profile : null);
@@ -59,6 +60,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
     async saveRecipe(recipe) {
       calls.push(['saveRecipe', recipe.id || null]);
       if (failures.save) throw new Error(failures.save);
+      this.saved.push(structuredClone(recipe));
       return { ...structuredClone(recipe), id: recipe.id || `r-new-${calls.length}`, updatedAt: 'now', createdAt: recipe.createdAt || 'now' };
     },
     async deleteRecipe(id) {
@@ -598,6 +600,68 @@ describe('stock photos', () => {
     await w.find('.picker-search').trigger('submit');
     await flushPromises();
     expect(w.find('.photo-picker').text()).toContain('No photos found.');
+  });
+});
+
+describe('cooked and want to cook', () => {
+  const both = () => [
+    sampleRecipe({ id: 'w1', title: 'Pea soup', tags: ['soup'] }),
+    sampleRecipe({ id: 'c1', title: 'Banana bread', tags: ['baking'], status: 'cooked', cookedOn: '2026-11-01' }),
+  ];
+  const tiles = (w) => w.findAll('.recipe-tile .tile-title').map((t) => t.text());
+  const showList = (w, label) => w.findAll('.list-toggle button').find((b) => b.text() === label).trigger('click');
+
+  it('opens on Want to cook; Cooked shows only cooked recipes', async () => {
+    seed = both();
+    const w = await mountApp();
+    expect(tiles(w)).toEqual(['Pea soup']);
+    await showList(w, 'Cooked');
+    expect(tiles(w)).toEqual(['Banana bread']);
+    expect(w.findAll('.list-toggle button').map((b) => b.attributes('aria-pressed'))).toEqual(['false', 'true']);
+  });
+
+  it('each list keeps its own filters', async () => {
+    seed = both();
+    const w = await mountApp();
+    await showList(w, 'Cooked');
+    await w.findAll('.tag-chip').find((b) => b.text() === 'baking').trigger('click');
+    await showList(w, 'Want to cook');
+    expect(tiles(w)).toEqual(['Pea soup']);
+    expect(w.findAll('.tag-chip.active')).toHaveLength(0);
+    await showList(w, 'Cooked');
+    expect(w.find('.tag-chip.active').text()).toBe('baking');
+  });
+
+  it('tag chips come from the list on screen', async () => {
+    seed = both();
+    const w = await mountApp();
+    expect(w.findAll('.tag-chip').map((b) => b.text())).toEqual(['soup']);
+  });
+
+  it('an empty list says so', async () => {
+    seed = [sampleRecipe()];
+    const w = await mountApp();
+    await showList(w, 'Cooked');
+    expect(w.text()).toContain('Nothing here yet.');
+  });
+
+  it('adding a recipe while on Cooked saves it as cooked', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await showList(w, 'Cooked');
+    await openAdd(w);
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(adapter.saved.at(-1).status).toBe('cooked');
+  });
+
+  it('adding a recipe while on Want to cook saves it as a wish', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w);
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(adapter.saved.at(-1)).toMatchObject({ status: 'wishlist', cookedOn: null });
   });
 });
 

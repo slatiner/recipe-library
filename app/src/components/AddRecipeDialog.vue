@@ -3,7 +3,7 @@
 // import-url reads first) go to the assistant, which makes the card; the user edits it and saves. Errors, and closing the
 // sheet before saving, keep what was typed, so nothing has to be pasted twice.
 import { computed, nextTick, ref, watch } from 'vue';
-import { parseRecipe, saveRecipe } from '../state.js';
+import { parseRecipe, saveRecipe, currentList } from '../state.js';
 import { MAX_PASTE } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import { linkOnly } from '../lib/importer.js';
@@ -38,7 +38,8 @@ async function makeCard() {
   }
   reading.value = true;
   try {
-    card.value = (await parseRecipe({ title: title.value, text: text.value })).recipe;
+    // Saved to the list on screen, so a dish already made goes straight to Cooked.
+    card.value = { ...(await parseRecipe({ title: title.value, text: text.value })).recipe, status: currentList.value };
   } catch (e) { error.value = e.message; }
   finally { reading.value = false; }
 }

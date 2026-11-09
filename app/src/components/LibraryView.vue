@@ -1,21 +1,21 @@
 <script setup>
-// The library: search, a Starred toggle, tag chips and a mosaic of recipes,
+// The library: a Want to cook / Cooked toggle, search, a Starred toggle, tag chips and a mosaic of recipes,
 // newest first along the top row (lib/mosaic.js).
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { recipes, toggleStar } from '../state.js';
+import { recipes, toggleStar, currentList, listFilters } from '../state.js';
 import { filterRecipes, allTags } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import { columnCount, dealColumns } from '../lib/mosaic.js';
 
 const emit = defineEmits(['add']);
-const query = ref('');
-const tag = ref('');
-const starredOnly = ref(false);
 const error = ref('');
 
-const tags = computed(() => allTags(recipes.value));
-const shown = computed(() => filterRecipes(recipes.value, { query: query.value, tag: tag.value, starredOnly: starredOnly.value }));
-const filtering = computed(() => !!(query.value.trim() || tag.value || starredOnly.value));
+const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label: 'Cooked' }];
+// The current list's own filters (state.js keeps them while a recipe is open).
+const f = computed(() => listFilters[currentList.value]);
+const inList = computed(() => recipes.value.filter((r) => r.status === currentList.value));
+const tags = computed(() => allTags(inList.value));
+const shown = computed(() => filterRecipes(inList.value, f.value));
 
 // Columns follow the library's width.
 const grid = ref(null);
@@ -32,7 +32,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => observer && observer.disconnect());
 
-function clearFilters() { query.value = ''; tag.value = ''; starredOnly.value = false; }
+function clearFilters() { Object.assign(f.value, { query: '', tag: '', starredOnly: false }); }
 const totalTime = (r) => { const t = (r.prepMinutes || 0) + (r.cookMinutes || 0); return t ? `${t} min` : ''; };
 
 // The source site's photo (a link); a tile whose photo fails to load drops it.
@@ -48,20 +48,25 @@ async function star(r) {
 
 <template>
   <div class="library">
+    <div class="list-toggle" role="group" aria-label="List">
+      <button v-for="l in LISTS" :key="l.id" class="input-btn" :class="{ active: currentList === l.id }"
+        :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
+    </div>
     <div class="library-bar">
-      <input v-model="query" class="search" type="search" placeholder="Search recipes and ingredients" aria-label="Search">
-      <button class="input-btn starred-toggle" :aria-pressed="starredOnly" :class="{ active: starredOnly }"
-        @click="starredOnly = !starredOnly">★ Starred</button>
+      <input v-model="f.query" class="search" type="search" placeholder="Search recipes and ingredients" aria-label="Search">
+      <button class="input-btn starred-toggle" :aria-pressed="f.starredOnly" :class="{ active: f.starredOnly }"
+        @click="f.starredOnly = !f.starredOnly">★ Starred</button>
       <span style="flex:1;"></span>
       <button class="add-new-btn" @click="emit('add')">Add recipe</button>
     </div>
     <div v-if="tags.length" class="tag-row">
-      <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: tag === t }" :aria-pressed="tag === t"
-        @click="tag = tag === t ? '' : t">{{ t }}</button>
+      <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tag === t }" :aria-pressed="f.tag === t"
+        @click="f.tag = f.tag === t ? '' : t">{{ t }}</button>
     </div>
     <p v-if="error" class="library-error redeem-error">{{ error }}</p>
 
     <div v-if="!recipes.length" class="empty">No recipes yet.</div>
+    <div v-else-if="!inList.length" class="empty">Nothing here yet.</div>
     <div v-else-if="!shown.length" class="empty">
       No recipes match. <button class="link-btn" @click="clearFilters">Clear filters</button>
     </div>
