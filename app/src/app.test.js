@@ -904,10 +904,10 @@ describe('a recipe page', () => {
     expect(w.findAll('.recipe-page ol.steps li').map((li) => li.text())).toEqual(['Mix.', 'Bake.']);
   });
 
-  it('shows each unit as a coloured badge', async () => {
+  it('shows each measure in a shield coloured by its unit', async () => {
     const w = await openRecipe();
     const badge = w.find('.recipe-page .ingredients .unit-badge');
-    expect(badge.text()).toBe('g');
+    expect(badge.text()).toBe('200 g');
     expect(badge.classes()).toContain('unit-g');
   });
 
