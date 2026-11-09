@@ -376,6 +376,8 @@ header.top .account-menu{align-self:center;}
 .tag-chip.active{background:var(--series);border-color:var(--series);color:#fff;}
 .recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
 .recipe-tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:border-color .12s;}
+.tile-photo{display:block;width:calc(100% + 32px);margin:-14px -16px 4px;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--line);}
+.recipe-tile{overflow:hidden;}
 .recipe-tile:hover,.recipe-tile:focus-visible{border-color:var(--ink);outline:none;}
 .tile-head{display:flex;align-items:flex-start;gap:8px;}
 .tile-title{flex:1;margin:0;font-size:15px;font-weight:600;line-height:1.3;}

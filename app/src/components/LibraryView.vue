@@ -19,6 +19,11 @@ const filtering = computed(() => !!(query.value.trim() || tag.value || starredOn
 function clearFilters() { query.value = ''; tag.value = ''; starredOnly.value = false; }
 const totalTime = (r) => { const t = (r.prepMinutes || 0) + (r.cookMinutes || 0); return t ? `${t} min` : ''; };
 
+// The source site's photo (a link); a tile whose photo fails to load drops it.
+const failed = ref(new Set());
+const photo = (r) => (/^https?:\/\//i.test(r.imageUrl || '') && !failed.value.has(r.id) ? r.imageUrl : null);
+function photoFailed(r) { failed.value = new Set(failed.value).add(r.id); }
+
 async function star(r) {
   error.value = '';
   try { await toggleStar(r.id); } catch (e) { error.value = e.message; }
@@ -47,6 +52,7 @@ async function star(r) {
     <div v-else class="recipe-grid">
       <div v-for="r in shown" :key="r.id" class="recipe-tile" role="link" tabindex="0"
         @click="go(`#/recipe/${r.id}`)" @keydown.enter="go(`#/recipe/${r.id}`)">
+        <img v-if="photo(r)" class="tile-photo" :src="photo(r)" alt="" loading="lazy" referrerpolicy="no-referrer" @error="photoFailed(r)">
         <div class="tile-head">
           <h3 class="tile-title">{{ r.title }}</h3>
           <button class="star-btn" :aria-pressed="String(!!r.starred)" :aria-label="r.starred ? 'Unstar' : 'Star'"

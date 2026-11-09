@@ -524,6 +524,12 @@ describe('the library', () => {
   ];
   const tiles = (w) => w.findAll('.recipe-tile .tile-title').map((t) => t.text());
 
+  it('a tile shows the source photo when there is one', async () => {
+    seed = [sampleRecipe({ imageUrl: 'https://cook.example/g.jpg' }), sampleRecipe({ id: 'r2', imageUrl: null }), sampleRecipe({ id: 'r3', imageUrl: 'data:x' })];
+    const w = await mountApp();
+    expect(w.findAll('.recipe-tile .tile-photo').map((i) => i.attributes('src'))).toEqual(['https://cook.example/g.jpg']);
+  });
+
   it('lists every recipe', async () => {
     seed = three();
     const w = await mountApp();
