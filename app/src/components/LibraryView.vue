@@ -6,6 +6,7 @@ import { recipes, toggleStar, currentList, listFilters } from '../state.js';
 import { filterRecipes, allTags } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import { columnCount, dealColumns } from '../lib/mosaic.js';
+import CookedDialog from './CookedDialog.vue';
 
 const emit = defineEmits(['add']);
 const error = ref('');
@@ -40,6 +41,11 @@ const failed = ref(new Set());
 const photo = (r) => (/^https?:\/\//i.test(r.imageUrl || '') && !failed.value.has(r.id) ? r.imageUrl : null);
 function photoFailed(r) { failed.value = new Set(failed.value).add(r.id); }
 
+// ✓ on a wish opens the date dialog.
+const cooking = ref(null);
+const cookedOpen = ref(false);
+function cooked(r) { cooking.value = r; cookedOpen.value = true; }
+
 async function star(r) {
   error.value = '';
   try { await toggleStar(r.id); } catch (e) { error.value = e.message; }
@@ -49,7 +55,7 @@ async function star(r) {
 <template>
   <div class="library">
     <div class="list-toggle" role="group" aria-label="List">
-      <button v-for="l in LISTS" :key="l.id" class="input-btn" :class="{ active: currentList === l.id }"
+      <button v-for="l in LISTS" :key="l.id" :class="{ active: currentList === l.id }"
         :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
     </div>
     <div class="library-bar">
@@ -80,6 +86,8 @@ async function star(r) {
             <h3 class="tile-title">{{ r.title }}</h3>
             <button class="star-btn" :aria-pressed="String(!!r.starred)" :aria-label="r.starred ? 'Unstar' : 'Star'"
               @click.stop="star(r)" @keydown.enter.stop>{{ r.starred ? '★' : '☆' }}</button>
+            <button v-if="r.status === 'wishlist'" class="cooked-btn" aria-label="Cooked it" title="Cooked it"
+              @click.stop="cooked(r)" @keydown.enter.stop>✓</button>
           </div>
           <p v-if="r.summary" class="tile-summary">{{ r.summary }}</p>
           <div v-if="totalTime(r) || r.tags.length" class="tile-meta">
@@ -89,5 +97,6 @@ async function star(r) {
         </div>
       </div>
     </div>
+    <CookedDialog v-model:open="cookedOpen" :recipe="cooking" />
   </div>
 </template>

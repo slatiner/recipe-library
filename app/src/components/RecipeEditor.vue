@@ -67,6 +67,7 @@ function save() {
       .map((r) => normalizeIngredient({ ...r, amount: String(r.amount).trim().replace(',', '.') }))
       .filter((i) => i.item),
     steps: stepsText.value.split('\n').map((t) => t.trim()).filter(Boolean).map((t) => ({ text: t })),
+    cookedOn: draft.status === 'cooked' && draft.cookedOn ? draft.cookedOn : null,
     tags: [...new Set(tagsText.value.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))],
   });
 }
@@ -88,6 +89,10 @@ function save() {
       <label>Title</label>
       <input v-model="draft.title" class="title" maxlength="200">
       <p v-if="!draft.title.trim()" class="field-hint">Give it a title to save it.</p>
+    </div>
+    <div v-if="draft.status === 'cooked'" class="field">
+      <label for="editor-cooked-on">Date cooked</label>
+      <input id="editor-cooked-on" v-model="draft.cookedOn" class="cooked-on" type="date">
     </div>
     <div class="field">
       <label>Summary</label>

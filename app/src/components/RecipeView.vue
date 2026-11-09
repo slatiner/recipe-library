@@ -3,13 +3,14 @@
 // edit it in place or delete it; the X goes back to the library.
 import { computed, ref } from 'vue';
 import { recipes, saveRecipe, deleteRecipe, toggleStar } from '../state.js';
-import { formatAmount } from '../lib/recipes.js';
+import { formatAmount, formatCookedOn } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
 import Modal from './Modal.vue';
 import RecipeEditor from './RecipeEditor.vue';
 import MissingSteps from './MissingSteps.vue';
 import PhotoPicker from './PhotoPicker.vue';
 import PhotoCredit from './PhotoCredit.vue';
+import CookedDialog from './CookedDialog.vue';
 import { stockPhoto } from '../lib/photos.js';
 
 const props = defineProps({ id: { type: String, required: true } });
@@ -47,6 +48,7 @@ const editing = ref(false);
 const saving = ref(false);
 const error = ref('');
 const confirmOpen = ref(false);
+const cookedOpen = ref(false);
 
 async function save(updated) {
   saving.value = true;
@@ -98,6 +100,7 @@ async function remove() {
         <button class="star-btn" :aria-pressed="String(!!recipe.starred)" :aria-label="recipe.starred ? 'Unstar' : 'Star'"
           @click="star">{{ recipe.starred ? '★' : '☆' }}</button>
       </div>
+      <p v-if="recipe.status === 'cooked' && recipe.cookedOn" class="cooked-on">{{ formatCookedOn(recipe.cookedOn) }}</p>
       <p v-if="recipe.summary" class="recipe-summary">{{ recipe.summary }}</p>
       <p v-if="times.length" class="recipe-times">{{ times.join(' · ') }}</p>
 
@@ -136,11 +139,13 @@ async function remove() {
       </p>
       <p v-if="error" class="redeem-error">{{ error }}</p>
       <div class="recipe-actions">
+        <button v-if="recipe.status === 'wishlist'" class="btn small" @click="cookedOpen = true">Cooked it</button>
         <button class="btn ghost small" @click="editing = true">Edit</button>
         <button class="btn danger small" @click="confirmOpen = true">Delete</button>
       </div>
     </template>
 
+    <CookedDialog v-model:open="cookedOpen" :recipe="recipe" />
     <Modal v-model:open="confirmOpen">
       <div class="delete-confirm">
         <h2>Delete recipe</h2>

@@ -2,6 +2,7 @@
 // through it. Real Google sign-in and the database can't be simulated here.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { today } from './lib/recipes.js';
 
 let state, App, adapter;
 let accessRequests = [];
@@ -662,6 +663,88 @@ describe('cooked and want to cook', () => {
     await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
     await flushPromises();
     expect(adapter.saved.at(-1)).toMatchObject({ status: 'wishlist', cookedOn: null });
+  });
+
+  const dialog = (w) => w.find('.cooked-dialog');
+  const moveButton = (w) => dialog(w).findAll('button').find((b) => b.text() === 'Move to Cooked');
+  async function openPage(w, id) {
+    window.location.hash = `#/recipe/${id}`;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+  }
+
+  it('✓ on a wish asks for the date, today filled in, and moves it to Cooked', async () => {
+    seed = both();
+    const w = await mountApp();
+    await w.find('.recipe-tile .cooked-btn').trigger('click');
+    expect(dialog(w).find('input[type=date]').element.value).toBe(today());
+    await moveButton(w).trigger('click');
+    await flushPromises();
+    expect(adapter.saved.at(-1)).toMatchObject({ id: 'w1', status: 'cooked', cookedOn: today() });
+    expect(tiles(w)).toEqual([]);
+    await showList(w, 'Cooked');
+    expect(tiles(w)).toEqual(['Pea soup', 'Banana bread']);
+  });
+
+  it('the date can be left out', async () => {
+    seed = both();
+    const w = await mountApp();
+    await w.find('.recipe-tile .cooked-btn').trigger('click');
+    await dialog(w).find('input[type=date]').setValue('');
+    await moveButton(w).trigger('click');
+    await flushPromises();
+    expect(adapter.saved.at(-1)).toMatchObject({ status: 'cooked', cookedOn: null });
+  });
+
+  it('a failed move shows the message and keeps the wish', async () => {
+    seed = both();
+    failures.save = 'Could not save the recipe: offline';
+    const w = await mountApp();
+    await w.find('.recipe-tile .cooked-btn').trigger('click');
+    await moveButton(w).trigger('click');
+    await flushPromises();
+    expect(dialog(w).text()).toContain('Could not save the recipe: offline');
+    expect(tiles(w)).toEqual(['Pea soup']);
+  });
+
+  it('cooked tiles have no ✓', async () => {
+    seed = both();
+    const w = await mountApp();
+    await showList(w, 'Cooked');
+    expect(w.find('.recipe-tile .cooked-btn').exists()).toBe(false);
+  });
+
+  it('a wish\'s page has Cooked it; a cooked page shows the date', async () => {
+    seed = both();
+    const w = await mountApp();
+    await openPage(w, 'w1');
+    await w.findAll('.recipe-page button').find((b) => b.text() === 'Cooked it').trigger('click');
+    await moveButton(w).trigger('click');
+    await flushPromises();
+    expect(w.find('.recipe-page .cooked-on').text()).toBe(`Cooked ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`);
+    await openPage(w, 'c1');
+    expect(w.find('.recipe-page .cooked-on').text()).toBe('Cooked 1 Nov 2026');
+    expect(w.findAll('.recipe-page button').some((b) => b.text() === 'Cooked it')).toBe(false);
+  });
+
+  it('Edit changes or clears the date; a wish has no date field', async () => {
+    seed = both();
+    const w = await mountApp();
+    await openPage(w, 'c1');
+    const edit = () => w.findAll('.recipe-page button').find((b) => b.text() === 'Edit').trigger('click');
+    const saveEdit = async () => { await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click'); await flushPromises(); };
+    await edit();
+    await w.find('.recipe-editor input.cooked-on').setValue('2026-10-20');
+    await saveEdit();
+    expect(adapter.saved.at(-1).cookedOn).toBe('2026-10-20');
+    await edit();
+    await w.find('.recipe-editor input.cooked-on').setValue('');
+    await saveEdit();
+    expect(adapter.saved.at(-1).cookedOn).toBe(null);
+    expect(w.find('.recipe-page .cooked-on').exists()).toBe(false);
+    await openPage(w, 'w1');
+    await edit();
+    expect(w.find('.recipe-editor input.cooked-on').exists()).toBe(false);
   });
 });
 
