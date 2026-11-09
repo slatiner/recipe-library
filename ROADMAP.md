@@ -17,7 +17,7 @@ GitHub repo exists. The design is in
 
 | Phase | Name | Status |
 |---|---|---|
-| 0 | Scaffold & port | 🔲 Not started |
+| 0 | Scaffold & port | 🟡 Local scaffold done; external setup pending |
 | 1 | Recipe card core | 🔲 Not started |
 | 2 | Import from links | 🔲 Not started |
 | 3 | Share & shopping | 🔲 Not started |
@@ -38,7 +38,8 @@ Add sheet with an optional **Title** field and a **Paste the recipe** textarea.
 The LLM turns the text into a card in metric (title, servings, times,
 ingredients, steps, tags, notes). If the title is empty and the text has a clear
 one, the LLM fills it; otherwise the user is asked for it. Editable preview,
-save. Library grid, card view, star, search, tag filter, edit, delete.
+save. Library grid, card view, star, search, tag filter, edit, delete. A
+privacy page (what's stored, Groq processing) before inviting anyone.
 
 ### 2. Import from links
 `import-url` edge function. Recipe websites via schema.org JSON-LD (LLM

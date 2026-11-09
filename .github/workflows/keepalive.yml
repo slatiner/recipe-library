@@ -1,0 +1,25 @@
+# Keeps the free Supabase project from pausing after a week idle.
+# Reads the one-row keepalive table with the public key every two days.
+# GitHub turns off scheduled workflows in a public repo after 60 days without
+# repository activity; re-enable it from the Actions tab if that happens.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 */2 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the keepalive table
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          body=$(curl --silent --show-error --fail \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/rest/v1/keepalive?select=id")
+          echo "$body"
+          [ "$body" = '[{"id":1}]' ]
