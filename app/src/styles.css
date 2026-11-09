@@ -353,3 +353,16 @@ header.top .account-menu{align-self:center;}
   .card .share{opacity:0;transition:opacity .15s ease;}
   .card:hover .share,.card:focus-within .share,.card .share.copied{opacity:1;}
 }
+
+/* Library toolbar and the recipe editor (Phase 1). */
+.library-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0;}
+.field-hint{margin:4px 0 0;font-size:12px;color:var(--warn);}
+.editor-numbers{display:flex;gap:10px;}
+.editor-numbers .field{flex:1;min-width:0;}
+.ing-row{display:grid;grid-template-columns:70px 72px 1fr 1fr 90px 24px;gap:6px;margin-bottom:6px;align-items:center;}
+.field .ing-row input,.field .ing-row select{padding:6px 7px;font-size:12.5px;}
+.ing-row .link-btn{font-size:16px;line-height:1;}
+@media (max-width:560px){
+  .ing-row{grid-template-columns:64px 64px 1fr 24px;}
+  .ing-row .note,.ing-row .group{grid-column:1 / span 3;}
+}

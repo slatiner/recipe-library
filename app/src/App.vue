@@ -4,6 +4,7 @@ import { recipes, connection, initStorage, connectStorage, reconnectStorage, sig
 import SettingsMenu from './components/SettingsMenu.vue';
 import InviteDialog from './components/InviteDialog.vue';
 import AccountDialog from './components/AccountDialog.vue';
+import AddRecipeDialog from './components/AddRecipeDialog.vue';
 import GoogleButton from './components/GoogleButton.vue';
 import { useScrollChrome } from './lib/scrollChrome.js';
 
@@ -14,6 +15,7 @@ const dot = computed(() => (connection.state === 'warn' ? 'warn' : ''));
 
 const inviteOpen = ref(false);
 const accountOpen = ref(false);
+const addOpen = ref(false);
 const headerEl = ref(null);
 const { compact } = useScrollChrome(headerEl);
 
@@ -127,10 +129,14 @@ onMounted(initStorage);
     </template>
 
     <div v-if="showMain">
+      <div class="library-bar">
+        <button class="add-new-btn" @click="addOpen = true">Add recipe</button>
+      </div>
       <div v-if="!recipes.length" class="empty">No recipes yet.</div>
     </div>
   </div>
 
   <InviteDialog v-model:open="inviteOpen" />
   <AccountDialog v-model:open="accountOpen" />
+  <AddRecipeDialog v-model:open="addOpen" />
 </template>

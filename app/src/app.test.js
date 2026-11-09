@@ -8,6 +8,8 @@ let accessRequests = [];
 // Recipes the fake library starts with, and calls to fail: { save, star, delete } → message.
 let seed = [];
 let failures = {};
+// What llmEndpoint() returns: null (signed out) or the proxy.
+let endpoint = null;
 
 function sampleRecipe(over = {}) {
   return {
@@ -51,7 +53,7 @@ function fakeAdapter(connState = 'ok', { isAdmin = false } = {}) {
       return { exportedAt: '2026-11-09T10:00:00.000Z', account: { email: account }, membership: null, invitesCreated: [], accessRequest: null };
     },
     async deleteAccount() { calls.push(['deleteAccount']); state.setConnection('signedOut', 'Your account and its data have been deleted.'); },
-    async llmEndpoint() { return null; },
+    async llmEndpoint() { return endpoint; },
     async saveRecipe(recipe) {
       calls.push(['saveRecipe', recipe.id || null]);
       if (failures.save) throw new Error(failures.save);
@@ -86,6 +88,7 @@ beforeEach(() => {
   accessRequests = [];
   seed = [];
   failures = {};
+  endpoint = null;
   window.location.hash = '';
   try { localStorage.clear(); } catch (e) { /* jsdom without storage */ }
 });
@@ -263,5 +266,98 @@ describe('recipe state', () => {
     failures.star = 'Could not update the star: offline';
     await expect(state.toggleStar('r1')).rejects.toThrow('offline');
     expect(state.recipes.value[0].starred).toBe(true);
+  });
+});
+
+// A canned Groq answer for the add dialog.
+function groqAnswers(...cards) {
+  const replies = cards.map((c) => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({
+    isRecipe: true, title: 'Tomato Soup', summary: null, servings: 4, prepMinutes: 10, cookMinutes: 30,
+    ingredients: [{ group: null, amount: 200, unit: 'g', item: 'flour', note: null }], steps: ['Cook.'], tags: ['soup'], notes: null, ...c,
+  }) } }] }), { status: 200 }));
+  globalThis.fetch = vi.fn(async () => replies.shift());
+  endpoint = { url: 'https://proxy/groq', headers: {} };
+}
+
+async function openAdd(w, { title = '', text = 'tomato soup recipe' } = {}) {
+  await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
+  await flushPromises();
+  if (title) await w.find('.add-recipe input.add-title').setValue(title);
+  await w.find('.add-recipe textarea.paste').setValue(text);
+  await w.findAll('.add-recipe button').find((b) => b.text() === 'Make the card').trigger('click');
+  await flushPromises();
+}
+
+describe('adding a recipe', () => {
+  it('paste, make the card: the editor shows the parsed card', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w);
+    expect(w.find('.recipe-editor input.title').element.value).toBe('Tomato Soup');
+    const row = w.find('.recipe-editor .ing-row');
+    expect(row.find('input.amount').element.value).toBe('200');
+    expect(row.find('select.unit').element.value).toBe('g');
+    expect(row.find('input.item').element.value).toBe('flour');
+  });
+
+  it('no title found: asks for one, and Save waits for it', async () => {
+    groqAnswers({ title: null });
+    const w = await mountApp();
+    await openAdd(w);
+    expect(w.find('.recipe-editor').text()).toContain('Give it a title to save it.');
+    const save = () => w.findAll('.recipe-editor button').find((b) => b.text() === 'Save');
+    expect(save().attributes('disabled')).toBeDefined();
+    await w.find('.recipe-editor input.title').setValue('Soup');
+    expect(save().attributes('disabled')).toBeUndefined();
+  });
+
+  it('text that is not a recipe: the message shows and the text stays', async () => {
+    groqAnswers({ isRecipe: false });
+    const w = await mountApp();
+    await openAdd(w, { text: 'buy milk' });
+    expect(w.find('.add-recipe .add-error').text()).toBe("That doesn't look like a recipe. Paste the ingredients and the method.");
+    expect(w.find('.add-recipe textarea.paste').element.value).toBe('buy milk');
+  });
+
+  it('a paste over 12,000 characters is refused without asking the assistant', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w, { text: 'x'.repeat(12001) });
+    expect(w.find('.add-recipe .add-error').text()).toBe("That's over 12,000 characters. Paste just the ingredients and method.");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('a failed save keeps the editor open with the edits', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w);
+    await w.find('.recipe-editor input.title').setValue('My soup');
+    failures.save = 'Could not save the recipe: offline';
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(w.find('.recipe-editor .editor-error').text()).toBe('Could not save the recipe: offline');
+    expect(w.find('.recipe-editor input.title').element.value).toBe('My soup');
+  });
+
+  it('saving adds the card to the library and opens it', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w, { title: "Nan's soup" });
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(state.recipes.value.map((r) => r.title)).toEqual(["Nan's soup"]);
+    expect(w.find('.add-recipe').element.closest('.overlay').classList.contains('open')).toBe(false);
+    expect(window.location.hash).toBe(`#/recipe/${state.recipes.value[0].id}`);
+  });
+
+  it('editing the steps marks them as the user\'s', async () => {
+    groqAnswers({});
+    const w = await mountApp();
+    await openAdd(w);
+    await w.find('.recipe-editor textarea.steps').setValue('Cook.\nServe hot.');
+    await w.findAll('.recipe-editor button').find((b) => b.text() === 'Save').trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0].steps).toEqual([{ text: 'Cook.' }, { text: 'Serve hot.' }]);
+    expect(state.recipes.value[0].stepsOrigin).toBe('user');
   });
 });
