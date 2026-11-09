@@ -20,6 +20,7 @@ GitHub repo exists. The design is in
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
 | 2 | Import from links | 🔧 Built, awaiting deploy and check |
+| 2.5 | Cooked & want to cook | 🔲 Not started |
 | 3 | Share & shopping | 🔲 Not started |
 | 4 | Dish photos | 🔲 Not started |
 | 5 | Video sources (experimental) | 🔲 Not started |
@@ -49,6 +50,15 @@ paste-the-caption fallback. Cards without steps are flagged and offer **Suggest
 a method** (AI, labelled, editable) or **Paste steps / website link**.
 A recipe site's own photo (JSON-LD `image` or `og:image`) is kept on the card
 as a credited link.
+
+### 2.5. Cooked & want to cook
+Two lists, like Content_Project's wishlist: **Cooked** and **Want to cook**,
+with the same cards, search, tags and star, and a toggle between them. Adding a
+recipe puts it in the list you're on, so a dish you've already made goes straight
+to Cooked. A ✓ on a wish moves it to Cooked in place, asking for the date cooked
+(optional, today filled in). Cooked cards show the date and can change or clear
+it in Edit. Each list keeps its own filters; the header count shows the current
+list.
 
 ### 3. Share & shopping
 Public share link per card (read-only, no sign-in). Select recipes → merged
@@ -129,3 +139,16 @@ page), stock search as an opt-in in Phase 4 if still wanted after using it.
 - *Suggest a method* uses `openai/gpt-oss-120b`: same Groq free-tier limits as
   the 20b model (30/min, 1,000/day per key, per third-party listings), better
   at writing a method from scratch.
+
+### Cooked and want to cook (2026-11-09)
+Added at the owner's request, modelled on Content_Project's wishlist (Phase
+5.5 there). A `status` column (`cooked` | `wishlist`) rather than a second
+table, so a wish moves to Cooked in place, keeping its id, photo and source;
+plus `cooked_on date null`, which the database refuses on a wish. Placed as 2.5,
+before sharing, so the shopping list (Phase 3) can be built from wishes you plan
+to cook; it depends on nothing after Phase 2. Unlike Content_Project, wishes are
+not private: a recipe you want to cook can still be shared by link.
+Proposed, to confirm when the phase starts (#15):
+- Recipes saved before this phase become wishes (most were imported to try).
+- One date per recipe (the last time cooked). A cooking log with several dates
+  and notes per cook can come later, in Polish.

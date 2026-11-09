@@ -80,6 +80,8 @@ One table, per user (no shared catalogue).
 | image_url | text null | the source site's own photo, hotlinked (Phase 2); never shown on the public page |
 | source_text | text | the raw pasted/fetched text, kept so a card can be re-parsed |
 | starred | bool default false | |
+| status | text default `cooked` | `cooked` \| `wishlist` (Phase 2.5) |
+| cooked_on | date null | the last time it was cooked; null on a wish (Phase 2.5) |
 | share_token | uuid null unique | set = public link on (Phase 3) |
 | created_at, updated_at | timestamptz | |
 
