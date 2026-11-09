@@ -375,7 +375,8 @@ header.top .account-menu{align-self:center;}
   .library-bar .list-toggle button{flex:1;}
 }
 /* ✓ Cooked it: a check on a grey circle, green on hover or focus. */
-.cooked-btn{flex:none;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:var(--line);color:var(--ink-soft);font-size:13px;font-weight:700;line-height:24px;text-align:center;cursor:pointer;transition:background .12s ease,color .12s ease;}
+/* Same height and centre line as the 18px star beside it. */
+.cooked-btn{flex:none;width:20px;height:20px;margin-top:-1px;padding:0;border:0;border-radius:50%;background:var(--line);color:var(--ink-soft);font-size:11px;font-weight:700;line-height:20px;text-align:center;cursor:pointer;transition:background .12s ease,color .12s ease;}
 .cooked-btn:hover,.cooked-btn:focus-visible{background:var(--series);color:#fff;}
 .cooked-btn:focus-visible{outline:2px solid var(--series);outline-offset:2px;}
 .cooked-on{margin:4px 0 0;font-size:13px;color:var(--ink-soft);}
