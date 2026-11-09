@@ -105,6 +105,7 @@ onMounted(initStorage);
       <p v-if="inviteCode">You've been invited. Sign in with Google to accept, and your code will be filled in.</p>
       <p v-else>Your recipes are stored in your account. Sign in with Google to see them. New here? You'll need an invite code.</p>
       <GoogleButton @click="connectStorage" />
+      <p class="setup-foot"><a href="privacy.html">Privacy</a></p>
     </div>
 
     <template v-if="showRedeem">
@@ -134,6 +135,7 @@ onMounted(initStorage);
     <template v-if="showMain">
       <RecipeView v-if="route.name === 'recipe'" :id="route.id" :key="route.id" />
       <LibraryView v-else @add="addOpen = true" />
+      <footer class="site-foot"><a href="privacy.html">Privacy</a> · <a href="https://github.com/slatiner/recipe-library">Source</a></footer>
     </template>
   </div>
 

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy</title>
+<!-- Privacy basics (#8). Keep in step with what the app stores and sends. -->
+<style>
+  :root { --paper:#f7f7f5; --ink:#191919; --ink-soft:#5c5c58; --line:#e1e0db; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper:#161615; --ink:#ecebe7; --ink-soft:#a5a49f; --line:#353531; }
+  }
+  :root[data-theme="dark"] { --paper:#161615; --ink:#ecebe7; --ink-soft:#a5a49f; --line:#353531; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.6 'IBM Plex Sans', system-ui, sans-serif; }
+  main { max-width:680px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:28px 0 6px; padding-top:20px; border-top:1px solid var(--line); }
+  p, li { color:var(--ink); }
+  .sub { color:var(--ink-soft); font-size:13px; margin:0 0 20px; }
+  a { color:inherit; }
+  ul { padding-left:20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy policy</h1>
+  <p class="sub">Last updated 9 November 2026. This is a small, invite-only, open-source hobby project.</p>
+
+  <p>Recipe Library keeps your own collection of recipes: you paste a recipe and it
+  becomes a tidy card. This page says what it stores, who can see it, and what
+  leaves the app. There are no ads, no analytics and no tracking cookies.</p>
+
+  <h2>What's stored</h2>
+  <ul>
+    <li><b>Your account:</b> your email address, name and profile picture link from
+    Google sign-in, and when you joined.</li>
+    <li><b>Your recipes:</b> every card you save (title, servings, times,
+    ingredients, method, tags, notes, whether you starred it) and the text you
+    pasted to make it, kept so a card can be re-read later.</li>
+    <li><b>Invites:</b> for admins, the invite codes you've created.</li>
+    <li><b>A request for a code:</b> if you ask for an invite code, your email
+    address, name and message, until you join or an admin dismisses it. Only admins
+    see it, so they can email you a code.</li>
+  </ul>
+  <p>The browser also keeps your sign-in session and a pending invite code in its
+  local storage. The database also counts your assistant requests for the current
+  day. Nothing else is stored about you.</p>
+
+  <h2>Where it's stored</h2>
+  <p>In a <a href="https://supabase.com/privacy">Supabase</a> database in Ireland
+  (AWS eu-west-1). Google handles sign-in. The site itself is served by GitHub Pages.
+  An encrypted backup of the database is made weekly and kept for 90 days, readable
+  only by the app's owner.</p>
+
+  <h2>Who can see it</h2>
+  <p>Your recipes are private: only you can see them. Other members can't. The
+  app's owner can technically access the database to run and repair it, and
+  doesn't read your recipes otherwise.</p>
+
+  <h2>What leaves the app</h2>
+  <ul>
+    <li><b>The assistant:</b> when you press "Make the card", the title you typed and
+    the text you pasted are sent to <a href="https://groq.com/privacy-policy/">Groq</a>,
+    which turns them into a card. Only that text is sent, not your other recipes.
+    Groq processes it in the US and doesn't use it to train models. Each member can
+    make 50 assistant requests a day.</li>
+  </ul>
+  <p>Nothing is sold or shared with anyone else.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li><b>Download your data:</b> account menu → Your data → Download my data
+    gives one JSON file with everything above, your recipes included.</li>
+    <li><b>Delete your account:</b> account menu → Your data → Delete my account
+    removes your account and your recipes right away. Copies age out of the
+    backups within 90 days.</li>
+    <li>Accounts that sign in but never redeem an invite are deleted automatically
+    after about a month.</li>
+  </ul>
+
+  <h2>Questions</h2>
+  <p>Open an issue at
+  <a href="https://github.com/slatiner/recipe-library/issues">github.com/slatiner/recipe-library/issues</a>.
+  Issues are public, so don't put personal details in them.</p>
+
+  <p class="sub" style="margin-top:32px;"><a href="./">← Back to the app</a></p>
+</main>
+</body>
+</html>

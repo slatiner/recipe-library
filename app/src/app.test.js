@@ -482,3 +482,15 @@ describe('a recipe page', () => {
     expect(w.find('.recipe-missing a').attributes('href')).toBe('#/');
   });
 });
+
+describe('privacy', () => {
+  it('the sign-in screen links to the privacy page', async () => {
+    const w = await mountApp('signedOut');
+    expect(w.find('.setup a[href="privacy.html"]').exists()).toBe(true);
+  });
+
+  it('the library has a privacy link in the footer', async () => {
+    const w = await mountApp();
+    expect(w.find('footer.site-foot a[href="privacy.html"]').exists()).toBe(true);
+  });
+});
