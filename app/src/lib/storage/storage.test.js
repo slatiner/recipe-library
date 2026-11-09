@@ -58,7 +58,7 @@ const recipe = {
   id: 'r1', title: 'Tomato soup', summary: 'Quick.', servings: 4, prepMinutes: 10, cookMinutes: 30,
   ingredients: [{ group: null, amount: 800, unit: 'g', item: 'tomatoes', note: null }], steps: [{ text: 'Cook.' }],
   stepsOrigin: 'source', tags: ['soup'], notes: null, sourceKind: 'text', sourceUrl: null, sourceAuthor: null,
-  sourceText: 'raw', imageUrl: 'https://example.com/a.jpg', imageSource: 'site', imageCredit: null, imageCreditUrl: null, status: 'cooked', cookedOn: '2026-11-01', starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
+  sourceText: 'raw', imageUrl: 'https://example.com/a.jpg', imageSource: 'site', imageCredit: null, imageCreditUrl: null, status: 'cooked', cookedOn: '2026-11-01', shareToken: null, starred: false, createdAt: '2026-11-09T10:00:00Z', updatedAt: '2026-11-09T11:00:00Z',
 };
 // What toRow sends: everything but id, owner, share_token and the timestamps.
 const { id: _i, owner: _o, share_token: _s, created_at: _c, updated_at: _u, ...toRowFields } = row;
@@ -208,6 +208,66 @@ describe('Supabase adapter', () => {
       await storage.init();
       client.failNext = { message: 'offline' };
       await expect(storage.saveRecipe(recipe)).rejects.toThrow('Could not save the recipe: offline');
+    });
+
+    it('an edit never sends the share token', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      await storage.saveRecipe({ ...recipe, shareToken: 't1' });
+      expect(recipeQueries(client).at(-1).calls.find((c) => c[0] === 'update')[1]).not.toHaveProperty('share_token');
+    });
+  });
+
+  describe('sharing', () => {
+    it('shares through share_recipe and returns the token', async () => {
+      const { storage, client } = adapterWith({ session, rpc: { share_recipe: { data: 't1', error: null } } });
+      await storage.init();
+      expect(await storage.shareRecipe('r1')).toBe('t1');
+      expect(client.log.at(-1)).toEqual({ rpc: 'share_recipe', args: { p_id: 'r1' } });
+    });
+
+    it('stops sharing through stop_sharing', async () => {
+      const { storage, client } = adapterWith({ session });
+      await storage.init();
+      await storage.stopSharing('r1');
+      expect(client.log.at(-1)).toEqual({ rpc: 'stop_sharing', args: { p_id: 'r1' } });
+    });
+
+    it('a shared recipe is read without a session, in camelCase', async () => {
+      const shared = {
+        title: 'Tomato soup', summary: 'Quick.', servings: 4, prep_minutes: 10, cook_minutes: 30,
+        ingredients: row.ingredients, steps: row.steps, steps_origin: 'ai_suggested', tags: ['soup'], notes: 'n',
+        source_kind: 'web', source_url: 'https://site', source_author: 'Site',
+        image_url: 'https://img', image_credit: 'Jane', image_credit_url: 'https://jane',
+      };
+      const { storage, client } = adapterWith({ rpc: { get_shared_recipe: { data: shared, error: null } } });
+      expect(await storage.getSharedRecipe('t1')).toEqual({
+        title: 'Tomato soup', summary: 'Quick.', servings: 4, prepMinutes: 10, cookMinutes: 30,
+        ingredients: row.ingredients, steps: row.steps, stepsOrigin: 'ai_suggested', tags: ['soup'], notes: 'n',
+        sourceKind: 'web', sourceUrl: 'https://site', sourceAuthor: 'Site',
+        imageUrl: 'https://img', imageSource: 'stock', imageCredit: 'Jane', imageCreditUrl: 'https://jane',
+      });
+      expect(client.log.at(-1)).toEqual({ rpc: 'get_shared_recipe', args: { p_token: 't1' } });
+    });
+
+    it('a shared recipe without a photo has none', async () => {
+      const { storage } = adapterWith({ rpc: { get_shared_recipe: { data: { title: 'x', ingredients: [], steps: [], tags: [] }, error: null } } });
+      const r = await storage.getSharedRecipe('t1');
+      expect([r.imageUrl, r.imageSource, r.imageCredit]).toEqual([null, null, null]);
+    });
+
+    it('an unknown or revoked token gives null', async () => {
+      expect(await adapterWith().storage.getSharedRecipe('t1')).toBe(null);
+    });
+
+    it('a token that is not a uuid gives null', async () => {
+      const { storage } = adapterWith({ rpc: { get_shared_recipe: { data: null, error: { code: '22P02', message: 'invalid input syntax for type uuid' } } } });
+      expect(await storage.getSharedRecipe('nope')).toBe(null);
+    });
+
+    it('any other error fails', async () => {
+      const { storage } = adapterWith({ rpc: { get_shared_recipe: { data: null, error: { code: '08006', message: 'offline' } } } });
+      await expect(storage.getSharedRecipe('t1')).rejects.toThrow('Could not load the recipe: offline');
     });
   });
 });

@@ -8,4 +8,7 @@ describe('parseHash', () => {
   it('a recipe page carries its id', () => {
     expect(parseHash('#/recipe/abc-123')).toEqual({ name: 'recipe', id: 'abc-123' });
   });
+  it('a share link carries its token', () => {
+    expect(parseHash('#/r/abc')).toEqual({ name: 'shared', id: 'abc' });
+  });
 });

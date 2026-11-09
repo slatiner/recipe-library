@@ -1,11 +1,13 @@
-// A small hash router: #/ is the library, #/recipe/<id> one recipe. Hash
+// A small hash router: #/ is the library, #/recipe/<id> one recipe, #/r/<token>
+// a recipe shared by link (readable without signing in). Hash
 // routes work on GitHub Pages without server rewrites, and the back button
 // and bookmarks work.
 import { reactive } from 'vue';
 
 export function parseHash(hash) {
-  const m = /^#\/recipe\/([^/?#]+)$/.exec(hash || '');
-  return m ? { name: 'recipe', id: decodeURIComponent(m[1]) } : { name: 'library', id: null };
+  const m = /^#\/(recipe|r)\/([^/?#]+)$/.exec(hash || '');
+  if (!m) return { name: 'library', id: null };
+  return { name: m[1] === 'r' ? 'shared' : 'recipe', id: decodeURIComponent(m[2]) };
 }
 
 export const route = reactive(parseHash(window.location.hash));

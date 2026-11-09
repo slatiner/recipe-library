@@ -25,6 +25,9 @@
 //   saveRecipe(recipe)      insert (no id) or update; the stored recipe
 //   deleteRecipe(id)
 //   setStarred(id, starred)
+//   shareRecipe(id)         turns the share link on; its token
+//   stopSharing(id)
+//   getSharedRecipe(token)  the public fields of a shared recipe, or null; no sign-in needed
 //   exportAccount()         everything stored for the account, one object
 //   deleteAccount()         delete the account and its data, then sign out
 //   llmEndpoint()           { url, headers } of the Groq proxy for the

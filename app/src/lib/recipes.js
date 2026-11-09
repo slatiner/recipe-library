@@ -41,7 +41,7 @@ export function formatAmount(i) {
 }
 
 // Lower case without accents, so "creme" finds "Crème brûlée".
-const fold = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export const fold = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function filterRecipes(list, { query = '', tag = '', starredOnly = false } = {}) {
   const q = fold(query.trim());

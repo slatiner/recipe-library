@@ -15,7 +15,21 @@ function fromRow(r) {
     sourceKind: r.source_kind, sourceUrl: r.source_url, sourceAuthor: r.source_author, sourceText: r.source_text,
     imageUrl: r.image_url ?? null, imageSource: r.image_source ?? null, imageCredit: r.image_credit ?? null,
     imageCreditUrl: r.image_credit_url ?? null, status: r.status, cookedOn: r.cooked_on ?? null,
-    starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+    shareToken: r.share_token ?? null, starred: r.starred, createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+// What get_shared_recipe returns: only the public fields. Its photo, when there
+// is one, is always a credited stock photo.
+function fromShared(r) {
+  return {
+    title: r.title, summary: r.summary ?? null, servings: r.servings ?? null,
+    prepMinutes: r.prep_minutes ?? null, cookMinutes: r.cook_minutes ?? null,
+    ingredients: r.ingredients || [], steps: r.steps || [], stepsOrigin: r.steps_origin ?? 'source',
+    tags: r.tags || [], notes: r.notes ?? null,
+    sourceKind: r.source_kind ?? 'text', sourceUrl: r.source_url ?? null, sourceAuthor: r.source_author ?? null,
+    imageUrl: r.image_url ?? null, imageSource: r.image_url ? 'stock' : null,
+    imageCredit: r.image_credit ?? null, imageCreditUrl: r.image_credit_url ?? null,
   };
 }
 
@@ -173,6 +187,29 @@ export function createSupabaseStorage(setStatus, { url, key, client } = {}) {
     async setStarred(id, starred) {
       const { error } = await sb.from('recipes').update({ starred }).eq('id', id);
       if (error) fail('Could not update the star', error);
+    },
+
+    // ---- Share links ----
+
+    // Turns sharing on (or keeps the existing link) and returns the token.
+    async shareRecipe(id) {
+      const { data, error } = await sb.rpc('share_recipe', { p_id: id });
+      if (error) fail('Could not share the recipe', error);
+      return data;
+    },
+
+    async stopSharing(id) {
+      const { error } = await sb.rpc('stop_sharing', { p_id: id });
+      if (error) fail('Could not stop sharing', error);
+    },
+
+    // Anyone with the link, signed in or not. null for a revoked or unknown
+    // token, and for one that isn't a uuid (Postgres says 22P02).
+    async getSharedRecipe(token) {
+      const { data, error } = await sb.rpc('get_shared_recipe', { p_token: token });
+      if (error && error.code === '22P02') return null;
+      if (error) fail('Could not load the recipe', error);
+      return data ? fromShared(data) : null;
     },
 
     // ---- Your data ----

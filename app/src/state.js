@@ -106,6 +106,21 @@ export async function toggleStar(id) {
   catch (e) { r.starred = !r.starred; throw e; }
 }
 
+// Share links. The link opens the public page, #/r/<token>.
+export const shareUrl = (token) => `${window.location.origin}${window.location.pathname}#/r/${token}`;
+export async function shareRecipe(id) {
+  const token = await storage.shareRecipe(id);
+  const r = recipes.value.find((x) => x.id === id);
+  if (r) r.shareToken = token;
+  return token;
+}
+export async function stopSharing(id) {
+  await storage.stopSharing(id);
+  const r = recipes.value.find((x) => x.id === id);
+  if (r) r.shareToken = null;
+}
+export const getSharedRecipe = (token) => storage.getSharedRecipe(token);
+
 // Your data.
 export const exportAccount = () => storage.exportAccount();
 export async function deleteAccount() {
