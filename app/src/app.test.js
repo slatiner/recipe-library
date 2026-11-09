@@ -291,6 +291,13 @@ async function openAdd(w, { title = '', text = 'tomato soup recipe' } = {}) {
 }
 
 describe('adding a recipe', () => {
+  it('opening the sheet puts the cursor in the paste box', async () => {
+    const w = await mountApp();
+    await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
+    await flushPromises();
+    expect(document.activeElement).toBe(w.find('.add-recipe textarea.paste').element);
+  });
+
   it('paste, make the card: the editor shows the parsed card', async () => {
     groqAnswers({});
     const w = await mountApp();

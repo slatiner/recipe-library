@@ -2,7 +2,7 @@
 // Add a recipe: an optional title and the pasted text (or a link, which
 // import-url reads first) go to the assistant, which makes the card; the user edits it and saves. Errors, and closing the
 // sheet before saving, keep what was typed, so nothing has to be pasted twice.
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { parseRecipe, saveRecipe } from '../state.js';
 import { MAX_PASTE } from '../lib/recipes.js';
 import { go } from '../lib/route.js';
@@ -19,11 +19,14 @@ const error = ref('');
 const saving = ref(false);
 const saveError = ref('');
 const isLink = computed(() => !!linkOnly(text.value));
+const paste = ref(null);
 
 watch(open, (isOpen) => {
   if (!isOpen) return;
   error.value = '';
   saveError.value = '';
+  // Straight to the paste box (not when a card is still being reviewed).
+  nextTick(() => { if (!card.value && paste.value) paste.value.focus({ preventScroll: true }); });
 });
 
 async function makeCard() {
@@ -66,7 +69,7 @@ async function save(recipe) {
         </div>
         <div class="field">
           <label>Paste the recipe or a link</label>
-          <textarea v-model="text" class="paste" rows="14" placeholder="Ingredients and method from anywhere, or a link to a recipe page or an Instagram post"></textarea>
+          <textarea ref="paste" v-model="text" class="paste" rows="14" placeholder="Ingredients and method from anywhere, or a link to a recipe page or an Instagram post"></textarea>
         </div>
         <p v-if="error" class="add-error redeem-error">{{ error }}</p>
         <div class="form-actions">
