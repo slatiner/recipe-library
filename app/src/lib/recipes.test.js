@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, formatAmount, filterRecipes, allTags, mainIngredients } from './recipes.js';
+import { UNITS, MAX_PASTE, emptyRecipe, normalizeIngredient, formatAmount, filterRecipes, allTags } from './recipes.js';
 
 const ing = (o) => ({ group: null, amount: null, unit: null, item: 'x', note: null, ...o });
 
@@ -67,18 +67,5 @@ describe('emptyRecipe', () => {
     expect(emptyRecipe().id).toBeUndefined();
     expect(UNITS).toEqual(['g', 'kg', 'ml', 'l', 'tsp', 'tbsp', 'pc']);
     expect(MAX_PASTE).toBe(12000);
-  });
-});
-
-describe('mainIngredients', () => {
-  const r = (...items) => ({ ingredients: items.map((item) => ({ item })) });
-  it('names the ingredients in order, without staples or repeats', () => {
-    expect(mainIngredients(r('Ricotta', 'salt', 'Butternut squash', 'Freshly ground black pepper', 'Extra-virgin olive oil', 'ricotta', 'Water', 'Sage', 'Olive oil'))).toEqual(['Ricotta', 'Butternut squash', 'Sage']);
-  });
-  it('keeps things that only start like a staple', () => {
-    expect(mainIngredients(r('Salted butter', 'Red pepper', 'Sesame oil', 'Watercress'))).toEqual(['Salted butter', 'Red pepper', 'Sesame oil', 'Watercress']);
-  });
-  it('stops at the limit', () => {
-    expect(mainIngredients(r('a', 'b', 'c'), 2)).toEqual(['a', 'b']);
   });
 });

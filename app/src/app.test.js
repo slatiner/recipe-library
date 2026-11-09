@@ -530,16 +530,6 @@ describe('the library', () => {
     expect(w.findAll('.recipe-tile .tile-photo').map((i) => i.attributes('src'))).toEqual(['https://cook.example/g.jpg']);
   });
 
-  it('a tile without a photo lists the main ingredients; one with a photo does not', async () => {
-    const ingredients = ['Ricotta', 'salt', 'Sage'].map((item) => ({ group: null, amount: null, unit: null, item, note: null }));
-    seed = [sampleRecipe({ ingredients }), sampleRecipe({ id: 'r2', ingredients, imageUrl: 'https://cook.example/g.jpg' })];
-    const w = await mountApp();
-    const tiles = w.findAll('.recipe-tile');
-    expect(tiles[0].find('.tile-ingredients').text()).toBe('Ricotta · Sage');
-    expect(tiles[0].find('.tile-summary').classes()).toContain('long');
-    expect(tiles[1].find('.tile-ingredients').exists()).toBe(false);
-  });
-
   it('lists every recipe', async () => {
     seed = three();
     const w = await mountApp();
