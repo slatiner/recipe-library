@@ -8,7 +8,6 @@ import { go } from '../lib/route.js';
 import { columnCount, dealColumns } from '../lib/mosaic.js';
 import CookedDialog from './CookedDialog.vue';
 
-const emit = defineEmits(['add']);
 const error = ref('');
 
 const LISTS = [{ id: 'wishlist', label: 'Want to cook' }, { id: 'cooked', label: 'Cooked' }];
@@ -63,12 +62,11 @@ async function star(r) {
       <input v-model="f.query" class="search" type="search" placeholder="Search recipes and ingredients" aria-label="Search">
       <button class="input-btn starred-toggle" :aria-pressed="f.starredOnly" :class="{ active: f.starredOnly }"
         @click="f.starredOnly = !f.starredOnly">★ Starred</button>
-      <!-- Pushed right, next to Add recipe; on a phone it takes the first line. -->
+      <!-- Pushed right; on a phone it takes the first line. -->
       <div class="list-toggle" role="group" aria-label="List">
         <button v-for="l in LISTS" :key="l.id" :class="{ active: currentList === l.id }"
           :aria-pressed="String(currentList === l.id)" @click="currentList = l.id">{{ l.label }}</button>
       </div>
-      <button class="add-new-btn" @click="emit('add')">Add recipe</button>
     </div>
     <div v-if="tags.length" class="tag-row">
       <button v-for="t in tags" :key="t" class="tag-chip" :class="{ active: f.tag === t }" :aria-pressed="f.tag === t"

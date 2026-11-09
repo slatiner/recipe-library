@@ -85,6 +85,9 @@ onMounted(initStorage);
           <text x="72" y="46" fill="currentColor">Recipe Library</text>
         </svg>
       </h1>
+      <div class="header-right">
+        <button v-if="showMain" class="add-new-btn" @click="addOpen = true">Add recipe</button>
+      </div>
       <SettingsMenu v-if="showMain" :can-invite="!!connection.profile?.isAdmin"
         :account="connection.account" :profile="connection.profile"
         @invite="inviteOpen = true" @account="accountOpen = true" @sign-out="signOut" />
@@ -134,7 +137,7 @@ onMounted(initStorage);
 
     <template v-if="showMain">
       <RecipeView v-if="route.name === 'recipe'" :id="route.id" :key="route.id" />
-      <LibraryView v-else @add="addOpen = true" />
+      <LibraryView v-else />
       <footer class="site-foot"><a href="privacy.html">Privacy</a> · <a href="https://github.com/slatiner/recipe-library">Source</a></footer>
     </template>
   </div>

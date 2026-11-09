@@ -294,6 +294,14 @@ async function openAdd(w, { title = '', text = 'tomato soup recipe' } = {}) {
 }
 
 describe('adding a recipe', () => {
+  it('Add recipe sits in the header, before the account menu', async () => {
+    const w = await mountApp();
+    const header = w.find('header.top');
+    expect(header.find('.header-right .add-new-btn').text()).toBe('Add recipe');
+    expect(header.html().indexOf('add-new-btn')).toBeLessThan(header.html().indexOf('avatar-btn'));
+    expect(w.find('.library-bar .add-new-btn').exists()).toBe(false);
+  });
+
   it('opening the sheet puts the cursor in the paste box', async () => {
     const w = await mountApp();
     await w.findAll('button').find((b) => b.text() === 'Add recipe').trigger('click');
