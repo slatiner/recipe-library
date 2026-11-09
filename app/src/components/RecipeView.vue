@@ -61,11 +61,13 @@ const fallbackLink = ref('');
 async function copyLink() {
   error.value = '';
   fallbackLink.value = '';
-  try {
-    const url = shareUrl(recipe.value.shareToken || await shareRecipe(props.id));
-    if (await copyText(url)) showToast('Link copied');
-    else fallbackLink.value = url;
-  } catch (e) { error.value = e.message; }
+  // The copy starts before the link exists (see lib/clipboard.js).
+  const link = recipe.value.shareToken ? Promise.resolve(shareUrl(recipe.value.shareToken)) : shareRecipe(props.id).then(shareUrl);
+  const copied = copyText(link);
+  let url;
+  try { url = await link; } catch (e) { error.value = e.message; return; }
+  if (await copied) showToast('Link copied');
+  else fallbackLink.value = url;
 }
 async function unshare() {
   error.value = '';
