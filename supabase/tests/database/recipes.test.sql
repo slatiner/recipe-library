@@ -57,6 +57,12 @@ select throws_ok($$ insert into public.recipes (title, image_url, image_source) 
 select throws_ok($$ insert into public.recipes (title, image_url, image_source, image_credit_url) values ('x', 'https://e.com/a.jpg', 'stock', 'javascript:x') $$, '23514', null, 'a non-http credit link is refused');
 select throws_ok($$ insert into public.recipes (title, image_url, image_source) values ('x', 'javascript:alert(1)', 'site') $$, '23514', null, 'a non-http image link is refused');
 select throws_ok($$ insert into public.recipes (title, image_url, image_source) values ('x', 'https://' || repeat('x', 2000), 'site') $$, '23514', null, 'an image link over 2,000 characters is refused');
+select is((select status from public.recipes where title = 'Pic'), 'wishlist', 'a new recipe is a wish by default');
+select is((select cooked_on from public.recipes where title = 'Pic'), null::date, 'a wish has no date cooked');
+select lives_ok($$ insert into public.recipes (title, status, cooked_on) values ('Made', 'cooked', '2026-11-01') $$, 'a cooked recipe keeps its date');
+select lives_ok($$ insert into public.recipes (title, status) values ('Made, no date', 'cooked') $$, 'the date cooked is optional');
+select throws_ok($$ insert into public.recipes (title, status) values ('x', 'eaten') $$, '23514', null, 'an unknown status is refused');
+select throws_ok($$ insert into public.recipes (title, status, cooked_on) values ('x', 'wishlist', '2026-11-01') $$, '23514', null, 'a wish cannot have a date cooked');
 
 -- ---- Member b can't see or touch a's ----
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
