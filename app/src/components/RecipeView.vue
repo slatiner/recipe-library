@@ -14,7 +14,9 @@ import PhotoCredit from './PhotoCredit.vue';
 import CookedDialog from './CookedDialog.vue';
 import RecipeBody from './RecipeBody.vue';
 import CopyFallback from './CopyFallback.vue';
+import SourceEmbed from './SourceEmbed.vue';
 import { stockPhoto } from '../lib/photos.js';
+import { youtubeId } from '../lib/embeds.js';
 
 const props = defineProps({ id: { type: String, required: true } });
 const recipe = computed(() => recipes.value.find((r) => r.id === props.id) || null);
@@ -22,6 +24,8 @@ const recipe = computed(() => recipes.value.find((r) => r.id === props.id) || nu
 // The source site's photo, linked rather than copied; hidden if it stops loading.
 const imageLink = computed(() => (/^https?:\/\//i.test(recipe.value.imageUrl || '') ? recipe.value.imageUrl : null));
 const imageFailed = ref(false);
+// A YouTube recipe shows the video (its thumbnail until played) instead of a photo.
+const isVideo = computed(() => !!youtubeId(recipe.value.sourceUrl));
 // A card without a photo can pick a stock one; it's saved straight away.
 const picking = ref(false);
 async function pickPhoto(p) {
@@ -97,12 +101,15 @@ async function remove() {
     <RecipeEditor v-if="editing" corner :model-value="recipe" :saving="saving" :error="error"
       @save="save" @cancel="editing = false; error = ''" />
     <template v-else>
-      <figure v-if="imageLink && !imageFailed" class="recipe-photo">
-        <img :src="imageLink" :alt="recipe.title" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed = true">
-        <figcaption><PhotoCredit :recipe="recipe" /></figcaption>
-      </figure>
-      <PhotoPicker v-else-if="picking" :query="recipe.title" @pick="pickPhoto" @close="picking = false" />
-      <button v-else-if="!imageLink" type="button" class="btn ghost small find-photo" @click="picking = true">Find a photo</button>
+      <template v-if="!isVideo">
+        <figure v-if="imageLink && !imageFailed" class="recipe-photo">
+          <img :src="imageLink" :alt="recipe.title" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed = true">
+          <figcaption><PhotoCredit :recipe="recipe" /></figcaption>
+        </figure>
+        <PhotoPicker v-else-if="picking" :query="recipe.title" @pick="pickPhoto" @close="picking = false" />
+        <button v-else-if="!imageLink" type="button" class="btn ghost small find-photo" @click="picking = true">Find a photo</button>
+      </template>
+      <SourceEmbed :url="recipe.sourceUrl" />
       <div class="recipe-head">
         <h2>{{ recipe.title }}</h2>
         <button class="star-btn" :aria-pressed="String(!!recipe.starred)" :aria-label="recipe.starred ? 'Unstar' : 'Star'"

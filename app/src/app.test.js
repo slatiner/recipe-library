@@ -452,6 +452,15 @@ describe('importing a link', () => {
     expect(saved).toMatchObject({ sourceKind: 'web', sourceUrl: 'https://cook.example/gnudi', sourceAuthor: 'Cook', imageUrl: 'https://cook.example/g.jpg', sourceText: igPage.text });
   });
 
+  it('a YouTube link takes the video thumbnail as its photo', async () => {
+    backend({ page: { ...igPage, kind: 'web', url: 'https://youtu.be/dQw4w9WgXcQ', imageUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg' }, answers: [parsed({ steps: ['Mix.'] })] });
+    const w = await mountApp();
+    await openAdd(w, { text: 'https://youtu.be/dQw4w9WgXcQ' });
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    expect(state.recipes.value[0]).toMatchObject({ imageUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg', imageSource: 'site' });
+  });
+
   it('the preview shows the source photo; Remove photo drops it from the saved card', async () => {
     backend({ page: { ...igPage, kind: 'web', url: 'https://cook.example/gnudi', imageUrl: 'https://cook.example/g.jpg' }, answers: [parsed({ steps: ['Mix.'] })] });
     const w = await mountApp();
@@ -1008,6 +1017,32 @@ describe('a recipe page', () => {
     expect(w.find('.recipe-photo').exists()).toBe(false);
   });
 
+  it('a YouTube source shows its thumbnail and only loads the player on a click', async () => {
+    seed = [sampleRecipe({ imageUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg', sourceUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })];
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(w.find('.recipe-photo').exists()).toBe(false);
+    expect(w.find('.find-photo').exists()).toBe(false);
+    expect(w.find('.source-embed iframe').exists()).toBe(false);
+    expect(w.find('.embed-poster img').attributes('src')).toBe('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+    await w.find('.embed-poster').trigger('click');
+    expect(w.find('.source-embed iframe').attributes('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0');
+  });
+
+  it('an Instagram source keeps Find a photo and offers the post behind a click', async () => {
+    seed = [sampleRecipe({ sourceUrl: 'https://www.instagram.com/reel/ABC/' })];
+    const w = await mountApp();
+    window.location.hash = '#/recipe/r1';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await flushPromises();
+    expect(w.find('.find-photo').exists()).toBe(true);
+    expect(w.find('.source-embed iframe').exists()).toBe(false);
+    await w.findAll('.source-embed button').find((b) => b.text() === 'Show the Instagram post').trigger('click');
+    expect(w.find('.source-embed iframe').attributes('src')).toBe('https://www.instagram.com/reel/ABC/embed/');
+  });
+
   it('an AI-suggested method carries the badge', async () => {
     seed = [sampleRecipe({ stepsOrigin: 'ai_suggested' })];
     const w = await mountApp();
@@ -1160,6 +1195,13 @@ describe('a shared recipe page', () => {
     const w = await openShared();
     expect(w.find('.shared-recipe img').attributes('src')).toBe('https://img.example/p.jpg');
     expect(w.find('.shared-recipe .photo-credit').text()).toContain('Jane Doe');
+  });
+
+  it('a YouTube source shows the video poster, not a photo', async () => {
+    shared = publicCard({ imageUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg', sourceUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+    const w = await openShared();
+    expect(w.find('.shared-recipe .recipe-photo').exists()).toBe(false);
+    expect(w.find('.shared-recipe .embed-poster').exists()).toBe(true);
   });
 
   it('no photo, no image', async () => {
