@@ -43,7 +43,7 @@ header.top .header-right{display:flex;align-items:center;gap:16px;}
 .add-new-btn{padding:8px 16px;border:none;border-radius:var(--radius);background:var(--ink);color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
 .add-new-btn:hover{opacity:0.85;}
 
-.filebar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin-bottom:18px;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);}
+.filebar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin-bottom:18px;padding:8px 0;}
 .filebar .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
 .filebar .dot.ok{background:var(--series);}
 .filebar .dot.warn{background:var(--warn);}
