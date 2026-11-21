@@ -19,7 +19,7 @@ GitHub repo exists. The design is in
 |---|---|---|
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
-| 2 | Import from links | ✅ Done (Find a photo on Openverse awaiting owner check, #16) |
+| 2 | Import from links | ✅ Done |
 | 2.5 | Cooked & want to cook | ✅ Done |
 | 3 | Share & shopping | 🚧 Built, awaiting owner check (#11) |
 | 4 | Dish photos | 🔲 Not started |
