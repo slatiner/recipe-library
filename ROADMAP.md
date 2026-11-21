@@ -21,7 +21,7 @@ GitHub repo exists. The design is in
 | 1 | Recipe card core | ✅ Done |
 | 2 | Import from links | ✅ Done |
 | 2.5 | Cooked & want to cook | ✅ Done |
-| 3 | Share & shopping | 🚧 Built, awaiting owner check (#11) |
+| 3 | Share & shopping | ✅ Done |
 | 4 | Dish photos | 🔲 Not started |
 | 5 | Video sources (experimental) | 🔲 Not started |
 | 6 | Polish | 🔲 Not started |
@@ -185,7 +185,7 @@ permanent hotlinking. Anonymous Openverse calls are throttled; fine for one
 user.
 
 ### Phase 3 share and shopping choices (2026-11-09)
-Plan: `docs/superpowers/plans/2026-11-09-phase-3-share.md` (built; needs `supabase db push` and an owner check).
+Plan: `docs/superpowers/plans/2026-11-09-phase-3-share.md` (built and verified 2026-11-21).
 - Shopping list: a **Shopping list** pick mode in the library (tap tiles,
   `N selected · Copy list · Cancel`), from either list. Plain text: the recipe
   names, then one line per item, alphabetical; same item and unit summed;
