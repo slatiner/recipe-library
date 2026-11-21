@@ -62,7 +62,7 @@ export async function importSteps(text) {
   return llm.parseSteps(await storage.llmEndpoint(), source);
 }
 
-// Pexels photos for a dish: [{ thumb, url, alt, photographer, photographerUrl }].
+// Openverse photos for a dish: [{ thumb, url, alt, photographer, photographerUrl }].
 export async function searchPhotos(query) {
   return photos.searchPhotos(await storage.photoEndpoint(), query);
 }

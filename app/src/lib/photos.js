@@ -1,5 +1,7 @@
 // Stock photos for a card without one: the photo-search edge function asks
-// Pexels. A picked photo is stored as a link with its photographer's credit.
+// Openverse (openly licensed photos, mostly Flickr and Wikimedia Commons). A
+// picked photo is stored as a link with its credit (creator and licence) and
+// a link to the photo's page.
 
 function fail(code, message) {
   const err = new Error(message);
@@ -7,7 +9,21 @@ function fail(code, message) {
   return err;
 }
 
-export const PEXELS_URL = 'https://www.pexels.com';
+export const OPENVERSE_URL = 'https://openverse.org';
+
+// Where a stock photo lives, named for its credit: "on Flickr".
+const SITES = [
+  [/(^|\.)flickr\.com$/, 'Flickr'],
+  [/(^|\.)wikimedia\.org$/, 'Wikimedia Commons'],
+  [/(^|\.)pexels\.com$/, 'Pexels'],
+  [/(^|\.)unsplash\.com$/, 'Unsplash'],
+];
+export function creditSite(url) {
+  let host = '';
+  try { host = new URL(url).hostname.toLowerCase(); } catch { /* no link */ }
+  const hit = SITES.find(([re]) => re.test(host));
+  return hit ? { name: hit[1], url: `https://${host}` } : { name: 'Openverse', url: OPENVERSE_URL };
+}
 
 // endpoint: the photo-search function, or null when signed out (code NO_KEY).
 export async function searchPhotos(endpoint, query) {

@@ -552,31 +552,31 @@ describe('steps missing', () => {
   });
 });
 
-const pexels = [
-  { thumb: 'https://images.pexels.com/1-m.jpg', url: 'https://images.pexels.com/1-l.jpg', alt: 'Gnocchi', photographer: 'Jane Doe', photographerUrl: 'https://www.pexels.com/@jane' },
-  { thumb: 'https://images.pexels.com/2-m.jpg', url: 'https://images.pexels.com/2-l.jpg', alt: '', photographer: 'Sam', photographerUrl: 'https://www.pexels.com/@sam' },
+const stock = [
+  { thumb: 'https://api.openverse.org/v1/images/1/thumb/', url: 'https://live.staticflickr.com/1_b.jpg', alt: 'Gnocchi', photographer: 'Jane Doe, CC BY 2.0', photographerUrl: 'https://www.flickr.com/photos/jane/1' },
+  { thumb: 'https://api.openverse.org/v1/images/2/thumb/', url: 'https://upload.wikimedia.org/2.jpg', alt: '', photographer: 'Sam, CC0', photographerUrl: 'https://commons.wikimedia.org/wiki/File:2.jpg' },
 ];
 
 describe('stock photos', () => {
   it('the preview of a card without a photo can find one; the pick is saved with its credit', async () => {
-    const sent = backend({ answers: [parsed({ steps: ['Mix.'] })], photos: pexels });
+    const sent = backend({ answers: [parsed({ steps: ['Mix.'] })], photos: stock });
     const w = await mountApp();
     await openAdd(w);
     await w.find('.recipe-editor button.find-photo').trigger('click');
     await flushPromises();
     expect(sent.at(-1)).toEqual({ url: 'https://fn/photo-search', body: { query: 'Squash Gnudi' } });
-    expect(w.findAll('.picker-photo img').map((i) => i.attributes('src'))).toEqual(['https://images.pexels.com/1-m.jpg', 'https://images.pexels.com/2-m.jpg']);
-    expect(w.find('.photo-picker').text()).toContain('Photos provided by Pexels');
+    expect(w.findAll('.picker-photo img').map((i) => i.attributes('src'))).toEqual(['https://api.openverse.org/v1/images/1/thumb/', 'https://api.openverse.org/v1/images/2/thumb/']);
+    expect(w.find('.photo-picker').text()).toContain('found by Openverse');
     await w.findAll('.picker-photo')[0].trigger('click');
-    expect(w.find('.editor-photo img').attributes('src')).toBe('https://images.pexels.com/1-l.jpg');
-    expect(w.find('.editor-photo .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe on Pexels');
+    expect(w.find('.editor-photo img').attributes('src')).toBe('https://live.staticflickr.com/1_b.jpg');
+    expect(w.find('.editor-photo .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe, CC BY 2.0 on Flickr');
     await saveButton(w).trigger('click');
     await flushPromises();
-    expect(state.recipes.value[0]).toMatchObject({ imageUrl: 'https://images.pexels.com/1-l.jpg', imageSource: 'stock', imageCredit: 'Jane Doe', imageCreditUrl: 'https://www.pexels.com/@jane' });
+    expect(state.recipes.value[0]).toMatchObject({ imageUrl: 'https://live.staticflickr.com/1_b.jpg', imageSource: 'stock', imageCredit: 'Jane Doe, CC BY 2.0', imageCreditUrl: 'https://www.flickr.com/photos/jane/1' });
   });
 
   it('Remove photo clears the credit too', async () => {
-    backend({ answers: [parsed({ steps: ['Mix.'] })], photos: pexels });
+    backend({ answers: [parsed({ steps: ['Mix.'] })], photos: stock });
     const w = await mountApp();
     await openAdd(w);
     await w.find('.recipe-editor button.find-photo').trigger('click');
@@ -590,7 +590,7 @@ describe('stock photos', () => {
 
   it('on a saved card the pick is saved at once and credited', async () => {
     seed = [sampleRecipe()];
-    const sent = backend({ photos: pexels });
+    const sent = backend({ photos: stock });
     const w = await mountApp();
     window.location.hash = '#/recipe/r1';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -605,21 +605,21 @@ describe('stock photos', () => {
     await w.findAll('.picker-photo')[0].trigger('click');
     await flushPromises();
     expect(adapter.calls).toContainEqual(['saveRecipe', 'r1']);
-    expect(w.find('.recipe-page .recipe-photo img').attributes('src')).toBe('https://images.pexels.com/1-l.jpg');
-    expect(w.find('.recipe-page .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe on Pexels');
+    expect(w.find('.recipe-page .recipe-photo img').attributes('src')).toBe('https://live.staticflickr.com/1_b.jpg');
+    expect(w.find('.recipe-page .photo-credit').text().replace(/\s+/g, ' ')).toBe('Photo: Jane Doe, CC BY 2.0 on Flickr');
     expect(w.find('.photo-picker').exists()).toBe(false);
   });
 
   it('a failed search shows the reason; no results suggest simpler words', async () => {
     seed = [sampleRecipe()];
-    backend({ photoError: { code: 'busy', message: 'Too many photo searches this hour. Try again later.' } });
+    backend({ photoError: { code: 'busy', message: 'Too many photo searches just now. Try again in a few minutes.' } });
     const w = await mountApp();
     window.location.hash = '#/recipe/r1';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     await flushPromises();
     await w.find('.recipe-page button.find-photo').trigger('click');
     await flushPromises();
-    expect(w.find('.picker-error').text()).toBe('Too many photo searches this hour. Try again later.');
+    expect(w.find('.picker-error').text()).toBe('Too many photo searches just now. Try again in a few minutes.');
     backend({ photos: [] });
     await w.find('.picker-search').trigger('submit');
     await flushPromises();

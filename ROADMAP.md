@@ -19,7 +19,7 @@ GitHub repo exists. The design is in
 |---|---|---|
 | 0 | Scaffold & port | ✅ Done |
 | 1 | Recipe card core | ✅ Done |
-| 2 | Import from links | ✅ Done (Find a photo waiting on an Unsplash key, #16) |
+| 2 | Import from links | ✅ Done (Find a photo on Openverse awaiting owner check, #16) |
 | 2.5 | Cooked & want to cook | ✅ Done |
 | 3 | Share & shopping | 🚧 Built, awaiting owner check (#11) |
 | 4 | Dish photos | 🔲 Not started |
@@ -162,13 +162,27 @@ Confirmed by the owner when the phase started:
 ### Find a photo: Pexels paused, moving to Unsplash (2026-11-09)
 Pexels stopped issuing new API keys (its API page says so, no end date), so
 the Pexels picker built in Phase 2 can't be switched on. The owner applied for
-an Unsplash app on 2026-11-09; Unsplash said 5–10 days. **Check at the start of
-each session until it's ready (#16).** When the Access Key arrives: switch
+an Unsplash app on 2026-11-09; Unsplash said 5–10 days. (Superseded
+2026-11-21, see below.) When the Access Key arrives: switch
 `photo-search` to Unsplash (search API, `client_id` from `UNSPLASH_ACCESS_KEY`),
 trigger the photo's `download_location` when one is picked, credit "Photo by
 <name> on Unsplash" with `utm_source` links, and store `image_source = stock`
 as now. Fallback if Unsplash says no: Openverse (no key; only reusable
 licences, each credited).
+
+### Find a photo on Openverse (2026-11-21)
+The Unsplash key isn't coming. Options without signing up for a key: Unsplash's
+internal `napi` search is now behind an anti-bot proof-of-work challenge
+(`/.within.website`), and getting past that would be evading bot detection, so
+it's out; scraping Bing or DuckDuckGo images is fragile and copyrighted.
+Decided: `photo-search` queries **Openverse** (no key, openly licensed photos,
+mostly Flickr and Wikimedia Commons). Each pick is stored as before
+(`image_source = stock`, hotlinked) with the credit "creator, licence" linking
+to the photo's page, shown as "Photo: <creator, licence> on Flickr". Quality is
+uneven next to Unsplash. Pixabay (free key, issued at sign-up) is the upgrade
+if that's not good enough; it needs Phase 4's storage since it forbids
+permanent hotlinking. Anonymous Openverse calls are throttled; fine for one
+user.
 
 ### Phase 3 share and shopping choices (2026-11-09)
 Plan: `docs/superpowers/plans/2026-11-09-phase-3-share.md` (built; needs `supabase db push` and an owner check).

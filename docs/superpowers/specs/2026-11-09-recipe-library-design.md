@@ -78,8 +78,8 @@ One table, per user (no shared catalogue).
 | source_url | text null | |
 | source_author | text null | e.g. Instagram handle |
 | image_url | text null | the card's photo, as a link (Phase 2) |
-| image_source | text null | `site` (the recipe site's photo; never on the public page) \| `stock` (picked on Pexels; public page too); Phase 4 adds `upload` |
-| image_credit, image_credit_url | text null | the photographer and their Pexels page, for `stock` |
+| image_source | text null | `site` (the recipe site's photo; never on the public page) \| `stock` (picked via Openverse, openly licensed; public page too); Phase 4 adds `upload` |
+| image_credit, image_credit_url | text null | for `stock`: "creator, licence" and the photo's own page (Flickr, Wikimedia Commons…) |
 | source_text | text | the raw pasted/fetched text, kept so a card can be re-parsed |
 | starred | bool default false | |
 | status | text default `cooked` | `cooked` \| `wishlist` (Phase 2.5) |

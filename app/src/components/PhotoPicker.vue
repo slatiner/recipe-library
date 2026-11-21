@@ -1,10 +1,10 @@
 <script setup>
-// "Find a photo" for a card without one: searches Pexels (by the title to
+// "Find a photo" for a card without one: searches Openverse (by the title to
 // start with) and emits pick(photo) for the one chosen. A stock photo shows a
 // similar dish, not this recipe, so it's never picked automatically.
 import { onMounted, ref } from 'vue';
 import { searchPhotos } from '../state.js';
-import { PEXELS_URL } from '../lib/photos.js';
+import { OPENVERSE_URL } from '../lib/photos.js';
 
 const props = defineProps({ query: { type: String, default: '' } });
 const emit = defineEmits(['pick', 'close']);
@@ -43,6 +43,6 @@ onMounted(search);
         <img :src="p.thumb" :alt="p.alt" loading="lazy" referrerpolicy="no-referrer">
       </button>
     </div>
-    <p class="field-hint">A similar dish, not this recipe. Photos provided by <a :href="PEXELS_URL" target="_blank" rel="noopener noreferrer">Pexels</a>.</p>
+    <p class="field-hint">A similar dish, not this recipe. Openly licensed photos found by <a :href="OPENVERSE_URL" target="_blank" rel="noopener noreferrer">Openverse</a>, credited on the card.</p>
   </div>
 </template>

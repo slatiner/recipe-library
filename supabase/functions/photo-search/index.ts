@@ -1,11 +1,10 @@
-// Searches Pexels for photos of a dish, for the "Find a photo" picker on a card
-// without one. The Pexels key lives in Supabase's secret store
-// (PEXELS_API_KEY) and never reaches the browser. Members only; Pexels allows
-// 200 searches an hour and 20,000 a month for the whole app, so this doesn't
-// count against the assistant's daily limit. Deployed with --no-verify-jwt;
-// the function checks the caller itself.
-// Pexels' terms: show a link to Pexels and credit the photographer (the app
-// does both wherever a picked photo is shown).
+// Searches Openverse for openly licensed photos of a dish, for the "Find a
+// photo" picker on a card without one. Openverse needs no key; it throttles
+// anonymous callers, which is plenty for a small invite-only library.
+// Members only, and it doesn't count against the assistant's daily limit.
+// Deployed with --no-verify-jwt; the function checks the caller itself.
+// Licences: every photo is credited with its creator, licence and a link to
+// its page (the app shows that wherever a picked photo is shown).
 import { searchUrl, toPhotos } from './photos.js';
 
 const ORIGINS = new Set(['https://slatiner.github.io', 'http://localhost:5173']);
@@ -46,15 +45,11 @@ Deno.serve(async (req) => {
   const url = searchUrl(String(input.query ?? ''));
   if (!url) return error(400, 'no_query', 'Type what to search for.');
 
-  const key = Deno.env.get('PEXELS_API_KEY');
-  if (!key) return error(500, 'no_server_key', 'PEXELS_API_KEY is not set');
-
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const r = await fetch(url, { headers: { Authorization: key }, signal: ctrl.signal });
-    if (r.status === 401 || r.status === 403) return error(502, 'bad_server_key', "The photo search key was rejected. Check PEXELS_API_KEY in Supabase.");
-    if (r.status === 429) return error(429, 'busy', 'Too many photo searches this hour. Try again later.');
+    const r = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'recipe-library photo search' }, signal: ctrl.signal });
+    if (r.status === 429) return error(429, 'busy', 'Too many photo searches just now. Try again in a few minutes.');
     if (!r.ok) return error(502, 'search_failed', `The photo search failed (HTTP ${r.status}).`);
     return reply(200, { photos: toPhotos(await r.json()) });
   } catch {
